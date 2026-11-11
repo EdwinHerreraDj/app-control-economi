@@ -5,6 +5,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { setupPwa } from '@/offline/pwa';
 
 // El nombre lo configura el superusuario; la plantilla lo publica en esta meta.
 const appName =
@@ -18,6 +19,9 @@ void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
+            // Página autónoma: funciona sin sesión ni conexión.
+            case name === 'offline':
+                return null;
             case name.startsWith('auth/') || name === 'onboarding':
                 return AuthLayout;
             case name.startsWith('settings/'):
@@ -42,3 +46,6 @@ void createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// Service worker, aviso de actualizaciones e instalación de la PWA.
+setupPwa();

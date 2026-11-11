@@ -19,6 +19,8 @@ use App\Http\Controllers\Finance\TransactionController;
 use App\Http\Controllers\Finance\TransferController;
 use App\Http\Controllers\ManifestController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\ServiceWorkerController;
+use App\Http\Controllers\SyncController;
 use Illuminate\Support\Facades\Route;
 
 // La aplicación es privada: la raíz lleva al panel (o al login si no hay sesión).
@@ -26,6 +28,17 @@ Route::redirect('/', '/dashboard')->name('home');
 
 // Manifiesto de la PWA (público: el navegador lo pide antes de iniciar sesión).
 Route::get('manifest.webmanifest', ManifestController::class)->name('manifest');
+
+// Service worker y modo sin conexión. La página sin conexión no lleva datos:
+// los lee del almacenamiento del dispositivo.
+Route::get('sw.js', ServiceWorkerController::class)->name('service-worker');
+Route::inertia('offline', 'offline')->name('offline');
+
+// Sincronización del modo sin conexión (JSON).
+Route::middleware(['auth', 'verified', 'onboarded'])->prefix('sync')->name('sync.')->group(function () {
+    Route::get('snapshot', [SyncController::class, 'snapshot'])->middleware('throttle:30,1')->name('snapshot');
+    Route::post('operations', [SyncController::class, 'push'])->middleware('throttle:30,1')->name('push');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('invitation/{token}', [InvitationController::class, 'show'])->name('invitation.show');

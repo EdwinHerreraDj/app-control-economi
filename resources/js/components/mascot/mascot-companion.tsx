@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import MascotController from '@/actions/App/Http/Controllers/Settings/MascotController';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useSyncState } from '@/offline/sync';
 import { edit as editMascot } from '@/routes/mascot';
 import type { MascotCompanionData, MascotStateName } from '@/types/branding';
 
@@ -37,6 +38,9 @@ export function MascotCompanion({ mascot }: { mascot: MascotCompanionData }) {
     );
     const [visible, setVisible] = useState(true);
     const ref = useRef<HTMLDivElement>(null);
+    // Sus mensajes avisan si aún faltan movimientos registrados sin conexión.
+    const { pending, attention } = useSyncState();
+    const unsent = pending + attention;
 
     useEffect(() => {
         if (!mascot.transient) {
@@ -142,6 +146,15 @@ export function MascotCompanion({ mascot }: { mascot: MascotCompanionData }) {
                 ) : (
                     <p className="mt-1 text-sm text-muted-foreground">
                         {mascot.reason}
+                    </p>
+                )}
+                {unsent > 0 && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        Aún no cuento{' '}
+                        {unsent === 1
+                            ? '1 movimiento registrado sin conexión'
+                            : `${unsent} movimientos registrados sin conexión`}
+                        .
                     </p>
                 )}
             </div>

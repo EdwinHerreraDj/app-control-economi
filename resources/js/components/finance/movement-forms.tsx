@@ -18,6 +18,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/hooks/use-format';
 import { normalizeAmount } from '@/lib/amount';
 import type { AccountOption, CategoryOption, Movement } from '@/types/finance';
+import { newUuid } from '@/offline/storage';
 
 type Common = {
     accounts: AccountOption[];
@@ -120,7 +121,7 @@ export function TransactionForm({
     categories: CategoryOption[];
 }) {
     // Identificador estable del alta: si se reenvía, el servidor no duplica.
-    const [uuid] = useState(() => crypto.randomUUID());
+    const [uuid] = useState(() => newUuid());
     const transform = useAmountTransform();
     const isExpense = kind === 'expense';
     const form = movement

@@ -32,6 +32,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/hooks/use-format';
 import { normalizeAmountFields } from '@/lib/amount';
 import { index as debtsIndex } from '@/routes/debts';
+import { newUuid } from '@/offline/storage';
 
 type Payment = {
     id: number;
@@ -533,7 +534,7 @@ function PaymentForm({
     onDone,
 }: Props & { debt: Debt; settle: boolean; onDone: () => void }) {
     const format = useFormat();
-    const [uuid] = useState(() => crypto.randomUUID());
+    const [uuid] = useState(() => newUuid());
     const [advances, setAdvances] = useState(true);
 
     if (accounts.length === 0) {

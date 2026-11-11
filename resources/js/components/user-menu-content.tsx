@@ -6,6 +6,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { beginLogout } from '@/components/offline/sync-provider';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { logout } from '@/routes';
@@ -19,8 +20,17 @@ type Props = {
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
 
-    const handleLogout = () => {
+    const handleLogout = (event: React.MouseEvent) => {
         cleanup();
+
+        // Con cambios sin enviar se pregunta antes; si no, se borran los
+        // datos del dispositivo y se cierra la sesión.
+        if (!beginLogout()) {
+            event.preventDefault();
+
+            return;
+        }
+
         router.flushAll();
     };
 

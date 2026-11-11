@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn, toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
+import { edit as editDevice } from '@/routes/device';
 import { edit as editMascot } from '@/routes/mascot';
 import { edit as editPreferences } from '@/routes/preferences';
 import { edit } from '@/routes/profile';
@@ -36,6 +37,11 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Apariencia',
         href: editAppearance(),
+        icon: null,
+    },
+    {
+        title: 'Dispositivo',
+        href: editDevice(),
         icon: null,
     },
 ];

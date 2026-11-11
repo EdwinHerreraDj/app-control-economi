@@ -31,6 +31,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 
+    // Instalación, sincronización y datos guardados en este dispositivo.
+    Route::inertia('settings/device', 'settings/device')->name('device.edit');
+
     Route::get('settings/mascot', [MascotController::class, 'edit'])->name('mascot.edit');
     Route::put('settings/mascot', [MascotController::class, 'update'])->name('mascot.update');
     Route::patch('settings/mascot/visibility', [MascotController::class, 'visibility'])->name('mascot.visibility');

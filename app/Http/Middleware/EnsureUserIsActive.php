@@ -23,6 +23,15 @@ class EnsureUserIsActive
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
+            // La sincronización sin conexión usa esta respuesta para borrar
+            // los datos guardados en el dispositivo.
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
+                return response()->json([
+                    'code' => 'inactive',
+                    'message' => 'La cuenta no está activa.',
+                ], 403);
+            }
+
             return redirect()->route('login')->with(
                 'status',
                 'Tu sesión se ha cerrado porque la cuenta no está activa.',

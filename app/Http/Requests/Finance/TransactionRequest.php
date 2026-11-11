@@ -8,6 +8,7 @@ use App\Enums\TransactionStatus;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Rules\MoneyAmount;
 use App\Support\Money;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -30,9 +31,22 @@ class TransactionRequest extends FinanceRequest
                 ? ['prohibited']
                 : ['required', Rule::in([TransactionKind::Income->value, TransactionKind::Expense->value])],
             'uuid' => $isUpdate ? ['prohibited'] : ['nullable', 'uuid'],
-            'account_id' => ['required', 'integer', $this->ownedBy('accounts')],
-            'category_id' => ['required', 'integer', $this->ownedBy('categories')],
-            'amount' => ['required', new MoneyAmount($this->currency())],
+            ...self::fieldRules($this->owner()),
+        ];
+    }
+
+    /**
+     * Reglas de los campos comunes; también las usa la sincronización de
+     * movimientos registrados sin conexión.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public static function fieldRules(User $owner): array
+    {
+        return [
+            'account_id' => ['required', 'integer', Rule::exists('accounts', 'id')->where('user_id', $owner->getKey())],
+            'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->where('user_id', $owner->getKey())],
+            'amount' => ['required', new MoneyAmount((string) $owner->currency)],
             'occurred_on' => ['required', 'date_format:Y-m-d'],
             'status' => ['required', Rule::enum(TransactionStatus::class)],
             'concept' => ['required', 'string', 'max:255'],
@@ -46,6 +60,14 @@ class TransactionRequest extends FinanceRequest
      * @return array<string, string>
      */
     public function attributes(): array
+    {
+        return self::labels();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function labels(): array
     {
         return [
             'account_id' => 'cuenta',

@@ -19,6 +19,7 @@ import { ColumnChart } from '@/components/charts/column-chart';
 import { Explanation } from '@/components/charts/explanation';
 import { CategoryIcon } from '@/components/finance/category-badge';
 import { MascotCompanion } from '@/components/mascot/mascot-companion';
+import { PendingSyncNotice } from '@/components/offline/pending-sync-notice';
 import type { MascotCompanionData } from '@/types/branding';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -209,6 +210,8 @@ export default function Dashboard(props: Props) {
                             )}
                     </div>
                 </section>
+
+                <PendingSyncNotice />
 
                 {mascot && <MascotCompanion mascot={mascot} />}
 

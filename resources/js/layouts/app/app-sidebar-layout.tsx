@@ -3,6 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { MobileNav } from '@/components/mobile-nav';
+import { SyncProvider } from '@/components/offline/sync-provider';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -29,6 +30,7 @@ export default function AppSidebarLayout({
                 </div>
             </AppContent>
             <MobileNav />
+            <SyncProvider />
         </AppShell>
     );
 }
