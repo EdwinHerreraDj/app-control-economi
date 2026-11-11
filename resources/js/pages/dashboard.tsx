@@ -1,39 +1,45 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    ArrowRightLeft,
-    Landmark,
-    PiggyBank,
-    Settings2,
-    Sparkles,
-} from 'lucide-react';
+import { ArrowLeftRight, Landmark, Minus, Plus, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Heading from '@/components/heading';
-import { Button } from '@/components/ui/button';
-import { useFormat } from '@/hooks/use-format';
 import { dashboard } from '@/routes';
-import { edit as editPreferences } from '@/routes/preferences';
+import { index as accountsIndex } from '@/routes/accounts';
+import { index as transactionsIndex } from '@/routes/transactions';
 
-const upcoming: { icon: LucideIcon; title: string; text: string }[] = [
+const quickActions: {
+    icon: LucideIcon;
+    title: string;
+    text: string;
+    href: ReturnType<typeof dashboard>;
+}[] = [
+    {
+        icon: Minus,
+        title: 'Añadir gasto',
+        text: 'Un pago hecho o uno previsto.',
+        href: transactionsIndex({ query: { new: 'expense' } }),
+    },
+    {
+        icon: Plus,
+        title: 'Añadir ingreso',
+        text: 'Un cobro recibido o por recibir.',
+        href: transactionsIndex({ query: { new: 'income' } }),
+    },
+    {
+        icon: ArrowLeftRight,
+        title: 'Transferir',
+        text: 'Mover dinero entre tus cuentas.',
+        href: transactionsIndex({ query: { new: 'transfer' } }),
+    },
     {
         icon: Landmark,
-        title: 'Cuentas',
-        text: 'Tus cuentas bancarias, efectivo y otros depósitos, con su saldo.',
-    },
-    {
-        icon: ArrowRightLeft,
-        title: 'Ingresos y gastos',
-        text: 'Registra movimientos previstos y confirmados por categoría.',
-    },
-    {
-        icon: PiggyBank,
-        title: 'Presupuestos y ahorro',
-        text: 'Límites por categoría, objetivos y previsión de liquidez.',
+        title: 'Mis cuentas',
+        text: 'Saldo real de cada cuenta.',
+        href: accountsIndex(),
     },
 ];
 
 export default function Dashboard() {
     const { auth } = usePage().props;
-    const format = useFormat();
     const firstName = auth.user.name.split(' ')[0];
 
     return (
@@ -46,59 +52,57 @@ export default function Dashboard() {
                     description="Este es tu espacio para entender y organizar tu economía."
                 />
 
-                <section
-                    aria-labelledby="empty-title"
-                    className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-xs sm:flex-row sm:items-center"
-                >
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-                        <Sparkles className="size-6" aria-hidden="true" />
-                    </span>
-                    <div className="flex-1 space-y-1">
-                        <h2 id="empty-title" className="font-semibold">
-                            Aún no hay datos que mostrar
-                        </h2>
-                        <p className="text-sm text-muted-foreground">
-                            Cuando registres tus cuentas y movimientos, aquí
-                            verás tu saldo, los próximos vencimientos y cuánto
-                            podrías ahorrar. Tus importes se mostrarán así:{' '}
-                            <strong className="text-foreground tabular-nums">
-                                {format.money('1234.56')}
-                            </strong>
-                            .
-                        </p>
-                    </div>
-                    <Button variant="outline" asChild>
-                        <Link href={editPreferences()}>
-                            <Settings2 aria-hidden="true" />
-                            Preferencias
-                        </Link>
-                    </Button>
-                </section>
-
-                <section aria-labelledby="upcoming-title" className="space-y-3">
+                <section aria-labelledby="quick-title" className="space-y-3">
                     <h2
-                        id="upcoming-title"
+                        id="quick-title"
                         className="text-sm font-medium text-muted-foreground"
                     >
-                        Muy pronto
+                        Acciones rápidas
                     </h2>
-                    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {upcoming.map(({ icon: Icon, title, text }) => (
-                            <li
-                                key={title}
-                                className="rounded-2xl border bg-card p-5 shadow-xs"
-                            >
-                                <Icon
-                                    className="mb-3 size-5 text-primary"
-                                    aria-hidden="true"
-                                />
-                                <h3 className="font-medium">{title}</h3>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {text}
-                                </p>
-                            </li>
-                        ))}
+                    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                        {quickActions.map(
+                            ({ icon: Icon, title, text, href }) => (
+                                <li key={title}>
+                                    <Link
+                                        href={href}
+                                        className="flex h-full flex-col gap-2 rounded-2xl border bg-card p-4 shadow-xs transition-colors hover:bg-accent/40"
+                                    >
+                                        <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                            <Icon
+                                                className="size-5"
+                                                aria-hidden="true"
+                                            />
+                                        </span>
+                                        <span className="font-medium">
+                                            {title}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {text}
+                                        </span>
+                                    </Link>
+                                </li>
+                            ),
+                        )}
                     </ul>
+                </section>
+
+                <section
+                    aria-labelledby="soon-title"
+                    className="flex gap-4 rounded-2xl border bg-card p-5 shadow-xs"
+                >
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                        <Sparkles className="size-5" aria-hidden="true" />
+                    </span>
+                    <div className="space-y-1">
+                        <h2 id="soon-title" className="font-semibold">
+                            Tu resumen llegará pronto
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                            Con tus cuentas y movimientos, aquí verás el saldo,
+                            los próximos vencimientos y una previsión de tu
+                            liquidez, siempre explicando en qué datos se basa.
+                        </p>
+                    </div>
                 </section>
             </div>
         </>

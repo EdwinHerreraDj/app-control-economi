@@ -2,6 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { MobileNav } from '@/components/mobile-nav';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -22,11 +23,12 @@ export default function AppSidebarLayout({
                 <div
                     id="contenido"
                     tabIndex={-1}
-                    className="flex flex-1 flex-col outline-none"
+                    className="flex flex-1 flex-col pb-24 outline-none md:pb-0"
                 >
                     {children}
                 </div>
             </AppContent>
+            <MobileNav />
         </AppShell>
     );
 }

@@ -115,3 +115,25 @@ export function browserTimeZone(): string | null {
         return null;
     }
 }
+
+/**
+ * Formatea un día sin hora («2026-11-05»). Se interpreta como fecha de
+ * calendario, sin aplicar zona horaria, para que no cambie de día.
+ */
+export function formatDay(
+    value: string | null | undefined,
+    prefs: FormatPreferences = FALLBACK,
+): string {
+    if (!value) {
+        return '—';
+    }
+
+    const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+
+    return new Intl.DateTimeFormat(prefs.number_locale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, month - 1, day)));
+}

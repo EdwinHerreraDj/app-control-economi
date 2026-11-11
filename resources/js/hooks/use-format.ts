@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import {
     formatDate,
     formatDateTime,
+    formatDay,
     formatMoney,
     formatRelative,
 } from '@/lib/format';
@@ -26,6 +27,8 @@ export function useFormat() {
                 formatDateTime(value, preferences),
             date: (value: string | null | undefined) =>
                 formatDate(value, preferences),
+            day: (value: string | null | undefined) =>
+                formatDay(value, preferences),
             relative: (value: string | null | undefined) =>
                 formatRelative(value, preferences),
         }),

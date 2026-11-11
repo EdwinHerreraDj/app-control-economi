@@ -2,6 +2,7 @@
 
 namespace App\Actions\Users;
 
+use App\Actions\Finance\SeedDefaultCategories;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\FinancialFootprint;
@@ -10,7 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class UpdatePreferences
 {
-    public function __construct(private readonly FinancialFootprint $footprint) {}
+    public function __construct(
+        private readonly FinancialFootprint $footprint,
+        private readonly SeedDefaultCategories $seedDefaultCategories,
+    ) {}
 
     /**
      * Guarda las preferencias personales.
@@ -37,6 +41,9 @@ class UpdatePreferences
                 'locale' => $locale,
                 'onboarded_at' => $user->onboarded_at ?? now(),
             ])->save();
+
+            // Espacio inicial con categorías orientativas (sin movimientos).
+            $this->seedDefaultCategories->handle($user);
 
             if ($currencyChanged) {
                 AuditLog::record('user.currency_changed', $user, [

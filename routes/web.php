@@ -3,6 +3,10 @@
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\Finance\AccountController;
+use App\Http\Controllers\Finance\CategoryController;
+use App\Http\Controllers\Finance\TransactionController;
+use App\Http\Controllers\Finance\TransferController;
 use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +27,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
+
+    // Finanzas personales. Los modelos se resuelven solo entre los del
+    // usuario con sesión (BelongsToUser): un id ajeno responde 404.
+    Route::get('accounts', [AccountController::class, 'index'])->name('accounts.index');
+    Route::post('accounts', [AccountController::class, 'store'])->name('accounts.store');
+    Route::put('accounts/{account}', [AccountController::class, 'update'])->name('accounts.update');
+    Route::post('accounts/{account}/archive', [AccountController::class, 'archive'])->name('accounts.archive');
+    Route::post('accounts/{account}/restore', [AccountController::class, 'restore'])->name('accounts.restore');
+
+    Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::post('categories/{category}/archive', [CategoryController::class, 'archive'])->name('categories.archive');
+    Route::post('categories/{category}/restore', [CategoryController::class, 'restore'])->name('categories.restore');
+
+    Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
+    Route::post('transactions', [TransactionController::class, 'store'])->name('transactions.store');
+    Route::put('transactions/{transaction}', [TransactionController::class, 'update'])->name('transactions.update');
+    Route::post('transactions/{transaction}/confirm', [TransactionController::class, 'confirm'])->name('transactions.confirm');
+    Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])->name('transactions.void');
+
+    Route::post('transfers', [TransferController::class, 'store'])->name('transfers.store');
+    Route::put('transfers/{transfer}', [TransferController::class, 'update'])->name('transfers.update');
+    Route::post('transfers/{transfer}/confirm', [TransferController::class, 'confirm'])->name('transfers.confirm');
+    Route::post('transfers/{transfer}/void', [TransferController::class, 'void'])->name('transfers.void');
 });
 
 Route::middleware(['auth', 'verified', 'onboarded', 'can:administer'])

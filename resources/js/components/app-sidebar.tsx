@@ -1,5 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, ScrollText, Users } from 'lucide-react';
+import {
+    ArrowLeftRight,
+    Landmark,
+    LayoutGrid,
+    ScrollText,
+    Shapes,
+    Users,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -15,6 +22,9 @@ import {
 import { dashboard } from '@/routes';
 import { index as auditIndex } from '@/routes/admin/audit';
 import { index as usersIndex } from '@/routes/admin/users';
+import { index as accountsIndex } from '@/routes/accounts';
+import { index as categoriesIndex } from '@/routes/categories';
+import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -22,6 +32,21 @@ const mainNavItems: NavItem[] = [
         title: 'Panel',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Movimientos',
+        href: transactionsIndex(),
+        icon: ArrowLeftRight,
+    },
+    {
+        title: 'Cuentas',
+        href: accountsIndex(),
+        icon: Landmark,
+    },
+    {
+        title: 'Categorías',
+        href: categoriesIndex(),
+        icon: Shapes,
     },
 ];
 
