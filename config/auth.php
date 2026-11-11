@@ -99,6 +99,15 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Enlaces de invitación enviados por el superusuario: temporales, de un
+        // solo uso y guardados con hash, igual que los de recuperación.
+        'invitations' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => (int) env('INVITATION_EXPIRE_MINUTES', 60 * 72),
+            'throttle' => 0,
+        ],
     ],
 
     /*

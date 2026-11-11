@@ -1,7 +1,6 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { LayoutGrid, ScrollText, Users } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -14,30 +13,34 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as auditIndex } from '@/routes/admin/audit';
+import { index as usersIndex } from '@/routes/admin/users';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Panel',
         href: dashboard(),
         icon: LayoutGrid,
     },
 ];
 
-const footerNavItems: NavItem[] = [
+const adminNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
+        title: 'Usuarios',
+        href: usersIndex(),
+        icon: Users,
     },
     {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Auditoría',
+        href: auditIndex(),
+        icon: ScrollText,
     },
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -53,11 +56,13 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain label="Mis finanzas" items={mainNavItems} />
+                {auth.can.administer && (
+                    <NavMain label="Administración" items={adminNavItems} />
+                )}
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>
