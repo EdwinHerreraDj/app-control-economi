@@ -20,7 +20,7 @@ void createInertiaApp({
     layout: (name) => {
         switch (true) {
             // Página autónoma: funciona sin sesión ni conexión.
-            case name === 'offline':
+            case name === 'offline' || name === 'error':
                 return null;
             case name.startsWith('auth/') || name === 'onboarding':
                 return AuthLayout;
