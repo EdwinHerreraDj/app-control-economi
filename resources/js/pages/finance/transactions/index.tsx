@@ -254,7 +254,7 @@ export default function TransactionsIndex({
                         value={format.money(summary.income)}
                         hint={
                             Number(summary.planned_income) !== 0
-                                ? `+ ${format.money(summary.planned_income)} previstos`
+                                ? `+ ${format.money(summary.planned_income)} pendientes de cobrar`
                                 : 'Cobrados este mes'
                         }
                     />
@@ -263,14 +263,14 @@ export default function TransactionsIndex({
                         value={format.money(summary.expense)}
                         hint={
                             Number(summary.planned_expense) !== 0
-                                ? `+ ${format.money(summary.planned_expense)} previstos`
+                                ? `+ ${format.money(summary.planned_expense)} pendientes de pagar`
                                 : 'Pagados este mes'
                         }
                     />
                     <SummaryCard
                         label="Diferencia"
                         value={format.money(summary.net)}
-                        hint="Ingresos menos gastos confirmados"
+                        hint="Lo cobrado menos lo pagado"
                         className="col-span-2 lg:col-span-2"
                     />
                 </section>
@@ -454,8 +454,8 @@ function FiltersBar({
                 }
                 options={[
                     ['', 'Todos los estados'],
-                    ['confirmed', 'Confirmados'],
-                    ['planned', 'Previstos'],
+                    ['confirmed', 'Pagados o cobrados'],
+                    ['planned', 'Pendientes'],
                     ['voided', 'Anulados'],
                 ]}
             />
@@ -573,6 +573,12 @@ function MovementRow({
         : isIncome
           ? 'Marcar como cobrado'
           : 'Marcar como pagado';
+    const confirm = () =>
+        postAction(
+            transfer
+                ? TransferController.confirm.url(transfer.id)
+                : TransactionController.confirm.url(movement.id),
+        );
 
     return (
         <li
@@ -646,12 +652,30 @@ function MovementRow({
                         Anulado
                     </Badge>
                 ) : (
-                    isPlanned && (
+                    isPlanned &&
+                    // Lo pendiente se marca con un toque, sin abrir el menú.
+                    (movement.debt_managed ? (
                         <Badge variant="outline">
                             <CalendarClock aria-hidden="true" />
-                            Previsto
+                            Pendiente
                         </Badge>
-                    )
+                    ) : (
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 px-2 text-xs"
+                            onClick={confirm}
+                            aria-label={`Pendiente. ${confirmLabel}: ${transfer?.concept || movement.concept}`}
+                        >
+                            <CircleCheck aria-hidden="true" />
+                            {transfer
+                                ? 'Marcar hecha'
+                                : isIncome
+                                  ? 'Marcar cobrado'
+                                  : 'Marcar pagado'}
+                        </Button>
+                    ))
                 )}
             </div>
 
@@ -685,19 +709,7 @@ function MovementRow({
                             Editar
                         </DropdownMenuItem>
                         {isPlanned && (
-                            <DropdownMenuItem
-                                onSelect={() =>
-                                    postAction(
-                                        transfer
-                                            ? TransferController.confirm.url(
-                                                  transfer.id,
-                                              )
-                                            : TransactionController.confirm.url(
-                                                  movement.id,
-                                              ),
-                                    )
-                                }
-                            >
+                            <DropdownMenuItem onSelect={confirm}>
                                 <CircleCheck aria-hidden="true" />
                                 {confirmLabel}
                             </DropdownMenuItem>

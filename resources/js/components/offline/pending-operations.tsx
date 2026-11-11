@@ -88,7 +88,7 @@ export function PendingOperations({
                                         ? 'Ingreso'
                                         : 'Gasto'}
                                     {payload.status === 'planned'
-                                        ? ' previsto'
+                                        ? ' pendiente'
                                         : ''}{' '}
                                     · {formatDay(payload.occurred_on, prefs)} ·{' '}
                                     {operation.labels.account} ·{' '}

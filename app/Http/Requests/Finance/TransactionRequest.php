@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Finance;
 
 use App\Enums\ExpenseNature;
+use App\Enums\Frequency;
 use App\Enums\TransactionKind;
 use App\Enums\TransactionStatus;
 use App\Models\Account;
@@ -31,6 +32,8 @@ class TransactionRequest extends FinanceRequest
                 ? ['prohibited']
                 : ['required', Rule::in([TransactionKind::Income->value, TransactionKind::Expense->value])],
             'uuid' => $isUpdate ? ['prohibited'] : ['nullable', 'uuid'],
+            // «Se repite»: además del movimiento, crea su recurrencia.
+            'repeat' => $isUpdate ? ['prohibited'] : ['nullable', Rule::enum(Frequency::class)],
             ...self::fieldRules($this->owner()),
         ];
     }
@@ -79,6 +82,7 @@ class TransactionRequest extends FinanceRequest
             'notes' => 'notas',
             'nature' => 'tipo de gasto',
             'due_on' => 'vencimiento',
+            'repeat' => 'repetición',
         ];
     }
 
@@ -94,6 +98,7 @@ class TransactionRequest extends FinanceRequest
         return [
             ...(isset($validated['kind']) ? ['kind' => TransactionKind::from($validated['kind'])] : []),
             'uuid' => $validated['uuid'] ?? null,
+            'repeat' => isset($validated['repeat']) ? Frequency::from($validated['repeat']) : null,
             'account' => Account::query()->ownedBy($this->owner())->findOrFail($validated['account_id']),
             'category' => Category::query()->ownedBy($this->owner())->findOrFail($validated['category_id']),
             'amount' => Money::toMinor((string) $validated['amount'], $this->currency()),

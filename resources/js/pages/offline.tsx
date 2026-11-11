@@ -434,7 +434,7 @@ export default function Offline() {
                                                                 · {item.account}
                                                                 {item.status ===
                                                                 'planned'
-                                                                    ? ' · previsto'
+                                                                    ? ' · pendiente'
                                                                     : ''}
                                                                 {transfer
                                                                     ? ' · transferencia'

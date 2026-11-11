@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Finance;
 
+use App\Actions\Finance\ManageRecurringRules;
 use App\Actions\Finance\RecordTransaction;
 use App\Enums\ExpenseNature;
+use App\Enums\Frequency;
 use App\Enums\TransactionKind;
 use App\Enums\TransactionStatus;
 use App\Http\Controllers\Controller;
@@ -18,6 +20,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -66,13 +69,49 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function store(TransactionRequest $request, RecordTransaction $record): RedirectResponse
+    public function store(TransactionRequest $request, RecordTransaction $record, ManageRecurringRules $rules): RedirectResponse
     {
-        /** @var array{kind: TransactionKind, account: Account, category: Category, amount: int, occurred_on: string, status: TransactionStatus, concept: string, notes: string|null, nature: ExpenseNature|null, due_on: string|null, uuid: string|null} $payload */
+        /** @var array{kind: TransactionKind, account: Account, category: Category, amount: int, occurred_on: string, status: TransactionStatus, concept: string, notes: string|null, nature: ExpenseNature|null, due_on: string|null, uuid: string|null, repeat: Frequency|null} $payload */
         $payload = $request->payload();
-        $record->create($request->user(), $payload);
+        /** @var User $user */
+        $user = $request->user();
+        $isIncome = $payload['kind'] === TransactionKind::Income;
 
-        $this->toast($payload['kind'] === TransactionKind::Income ? 'Ingreso registrado.' : 'Gasto registrado.');
+        $transaction = DB::transaction(function () use ($user, $payload, $record, $rules) {
+            $transaction = $record->create($user, $payload);
+
+            // «Se repite»: este movimiento es la primera vez y las siguientes
+            // quedan pendientes en Recurrentes. Reenviar el mismo formulario
+            // (mismo uuid) no crea otra recurrencia.
+            if ($payload['repeat'] !== null && $transaction->wasRecentlyCreated) {
+                $rule = $rules->create($user, [
+                    'kind' => $payload['kind'],
+                    'account' => $payload['account'],
+                    'category' => $payload['category'],
+                    'amount' => $payload['amount'],
+                    'concept' => $payload['concept'],
+                    'nature' => $payload['nature'] ?? ExpenseNature::Fixed,
+                    'frequency' => $payload['repeat'],
+                    'starts_on' => $payload['occurred_on'],
+                    'ends_on' => null,
+                    'generate_from' => CarbonImmutable::parse($payload['occurred_on'])->addDay()->toDateString(),
+                ]);
+
+                $transaction->forceFill([
+                    'recurring_rule_id' => $rule->id,
+                    'occurrence_on' => $payload['occurred_on'],
+                ])->save();
+            }
+
+            return $transaction;
+        });
+
+        $this->toast(match (true) {
+            $transaction->recurring_rule_id !== null && $payload['repeat'] !== null => ($isIncome ? 'Ingreso registrado' : 'Gasto registrado')
+                .'. Se repetirá '.mb_strtolower($payload['repeat']->label()).': lo verás en Recurrentes.',
+            $isIncome => 'Ingreso registrado.',
+            default => 'Gasto registrado.',
+        });
 
         return back();
     }

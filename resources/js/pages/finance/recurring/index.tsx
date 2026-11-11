@@ -15,6 +15,8 @@ import { useState } from 'react';
 import RecurringRuleController from '@/actions/App/Http/Controllers/Finance/RecurringRuleController';
 import AmountInput from '@/components/finance/amount-input';
 import { CategoryIcon } from '@/components/finance/category-badge';
+import { MoreOptions } from '@/components/finance/more-options';
+import { RecurrenceSummary } from '@/components/finance/recurrence-summary';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +43,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/hooks/use-format';
 import { quickAction } from '@/lib/actions';
 import { normalizeAmountFields } from '@/lib/amount';
+import type { FrequencyValue } from '@/lib/recurrence';
 import { cn } from '@/lib/utils';
 import { index as recurringIndex } from '@/routes/recurring';
 import type { AccountOption, CategoryOption } from '@/types/finance';
@@ -96,13 +99,13 @@ export default function RecurringIndex(props: Props) {
 
     return (
         <>
-            <Head title="Recurrentes y vencimientos" />
+            <Head title="Pagos y cobros que se repiten" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title="Recurrentes y vencimientos"
-                        description="Anticipa tus compromisos: lo que cobrarás y pagarás en las próximas semanas."
+                        title="Pagos y cobros que se repiten"
+                        description="Apunta una vez lo que se repite (alquiler, nómina, suscripciones) y la app te recordará cada pago."
                     />
                     <div className="flex flex-wrap gap-2">
                         <Button
@@ -115,7 +118,7 @@ export default function RecurringIndex(props: Props) {
                             }
                         >
                             <Plus aria-hidden="true" />
-                            Gasto recurrente
+                            Gasto que se repite
                         </Button>
                         <Button
                             variant="secondary"
@@ -128,18 +131,18 @@ export default function RecurringIndex(props: Props) {
                             }
                         >
                             <Plus aria-hidden="true" />
-                            Ingreso recurrente
+                            Ingreso que se repite
                         </Button>
                     </div>
                 </div>
 
                 <section aria-labelledby="upcoming-title" className="space-y-3">
                     <h2 id="upcoming-title" className="font-semibold">
-                        Próximos {upcomingDays} días
+                        Lo que viene en los próximos {upcomingDays} días
                     </h2>
                     {upcoming.length === 0 ? (
                         <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                            No hay cobros ni pagos previstos en este periodo.
+                            No tienes cobros ni pagos pendientes en estos días.
                         </p>
                     ) : (
                         <ul className="divide-y rounded-2xl border bg-card shadow-xs">
@@ -152,14 +155,14 @@ export default function RecurringIndex(props: Props) {
                         </ul>
                     )}
                     <p className="text-xs text-muted-foreground">
-                        Son previsiones: no cuentan en tu saldo hasta que las
-                        marcas como cobradas o pagadas en Movimientos.
+                        Aún no cuentan en tu saldo. Cuando ocurran, márcalos
+                        como pagados o cobrados en Movimientos.
                     </p>
                 </section>
 
                 <section aria-labelledby="rules-title" className="space-y-3">
                     <h2 id="rules-title" className="font-semibold">
-                        Ingresos y gastos que se repiten
+                        Lo que tienes apuntado
                     </h2>
                     {rules.length === 0 ? (
                         <div className="rounded-2xl border border-dashed p-6 text-center">
@@ -214,10 +217,10 @@ export default function RecurringIndex(props: Props) {
                                 ¿Eliminar «{dialog.rule.concept}»?
                             </DialogTitle>
                             <DialogDescription>
-                                Se quitarán sus previsiones pendientes. Los
-                                movimientos que ya confirmaste se conservan. Si
-                                solo quieres detenerla un tiempo, ponla en
-                                pausa.
+                                Dejarán de aparecer sus próximos pendientes. Lo
+                                que ya marcaste como pagado o cobrado se
+                                conserva. Si solo quieres detenerlo un tiempo,
+                                ponlo en pausa.
                             </DialogDescription>
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
@@ -306,7 +309,7 @@ function UpcomingRow({ item }: { item: Upcoming }) {
                 {item.overdue && (
                     <Badge variant="outline">
                         <TriangleAlert aria-hidden="true" />
-                        Fecha pasada, sin confirmar
+                        Ya pasó la fecha: ¿lo marcas?
                     </Badge>
                 )}
             </div>
@@ -422,6 +425,11 @@ function RuleForm({
 }) {
     const format = useFormat();
     const isExpense = kind === 'expense';
+    const [frequency, setFrequency] = useState<FrequencyValue>(
+        (rule?.frequency as FrequencyValue | undefined) ?? 'monthly',
+    );
+    const [startsOn, setStartsOn] = useState(rule?.starts_on ?? today);
+    const [endsOn, setEndsOn] = useState(rule?.ends_on ?? '');
     const form = rule
         ? RecurringRuleController.update.form(rule.id)
         : RecurringRuleController.store.form();
@@ -431,12 +439,15 @@ function RuleForm({
     const categoryOptions = categories.filter(
         (c) => c.kind === kind && (!c.archived || c.id === rule?.category.id),
     );
+    const noun = isExpense ? 'pago' : 'cobro';
 
     if (accountOptions.length === 0) {
         return (
             <>
                 <DialogTitle>
-                    {isExpense ? 'Gasto recurrente' : 'Ingreso recurrente'}
+                    {isExpense
+                        ? 'Gasto que se repite'
+                        : 'Ingreso que se repite'}
                 </DialogTitle>
                 <DialogDescription>
                     Antes, crea al menos una cuenta en el apartado Cuentas.
@@ -463,29 +474,23 @@ function RuleForm({
                 <>
                     <DialogTitle>
                         {rule
-                            ? 'Editar recurrencia'
+                            ? `Editar «${rule.concept}»`
                             : isExpense
-                              ? 'Nuevo gasto recurrente'
-                              : 'Nuevo ingreso recurrente'}
+                              ? 'Gasto que se repite'
+                              : 'Ingreso que se repite'}
                     </DialogTitle>
                     <DialogDescription>
                         {rule
-                            ? 'Las previsiones pendientes se recalcularán; las ya confirmadas no cambian.'
-                            : 'Se crearán previsiones para las próximas fechas. Nunca se dan por cobradas o pagadas.'}
+                            ? 'Los cambios se aplican a los próximos pendientes; lo que ya marcaste como hecho no cambia.'
+                            : isExpense
+                              ? 'Para pagos fijos como el alquiler, la luz o una suscripción. Te avisaremos de cada uno.'
+                              : 'Para cobros fijos como la nómina o una pensión. Te avisaremos de cada uno.'}
                     </DialogDescription>
 
                     {!rule && <input type="hidden" name="kind" value={kind} />}
 
-                    <AmountInput
-                        id="rule-amount"
-                        name="amount"
-                        label="Importe"
-                        defaultValue={rule?.amount ?? null}
-                        error={errors.amount}
-                    />
-
                     <div className="grid gap-2">
-                        <Label htmlFor="rule-concept">Concepto</Label>
+                        <Label htmlFor="rule-concept">¿Qué es?</Label>
                         <Input
                             id="rule-concept"
                             name="concept"
@@ -495,11 +500,67 @@ function RuleForm({
                             }
                             required
                             maxLength={255}
+                            autoComplete="off"
                         />
                         <InputError message={errors.concept} />
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <AmountInput
+                        id="rule-amount"
+                        name="amount"
+                        label="¿Cuánto es cada vez?"
+                        defaultValue={rule?.amount ?? null}
+                        error={errors.amount}
+                        hint="Si cambia un poco cada vez (como la luz), pon un importe aproximado."
+                    />
+
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="rule-frequency">
+                                ¿Cada cuánto se repite?
+                            </Label>
+                            <NativeSelect
+                                id="rule-frequency"
+                                name="frequency"
+                                value={frequency}
+                                onChange={(event) =>
+                                    setFrequency(
+                                        event.target.value as FrequencyValue,
+                                    )
+                                }
+                            >
+                                {frequencies.map((f) => (
+                                    <option key={f.value} value={f.value}>
+                                        {f.label}
+                                    </option>
+                                ))}
+                            </NativeSelect>
+                            <InputError message={errors.frequency} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="rule-start">
+                                ¿Qué día toca el {noun}?
+                            </Label>
+                            <Input
+                                id="rule-start"
+                                name="starts_on"
+                                type="date"
+                                value={startsOn}
+                                onChange={(event) =>
+                                    setStartsOn(event.target.value)
+                                }
+                                required
+                                aria-describedby="rule-start-hint"
+                            />
+                            <p
+                                id="rule-start-hint"
+                                className="text-xs text-muted-foreground"
+                            >
+                                Elige una fecha en la que toque: el resto se
+                                calcula a partir de ella.
+                            </p>
+                            <InputError message={errors.starts_on} />
+                        </div>
                         <div className="grid gap-2">
                             <Label htmlFor="rule-category">Categoría</Label>
                             <NativeSelect
@@ -519,7 +580,9 @@ function RuleForm({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="rule-account">
-                                {isExpense ? 'Se paga desde' : 'Se cobra en'}
+                                {isExpense
+                                    ? '¿De qué cuenta sale?'
+                                    : '¿En qué cuenta entra?'}
                             </Label>
                             <NativeSelect
                                 id="rule-account"
@@ -536,50 +599,24 @@ function RuleForm({
                             </NativeSelect>
                             <InputError message={errors.account_id} />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="rule-frequency">Frecuencia</Label>
-                            <NativeSelect
-                                id="rule-frequency"
-                                name="frequency"
-                                defaultValue={rule?.frequency ?? 'monthly'}
-                            >
-                                {frequencies.map((f) => (
-                                    <option key={f.value} value={f.value}>
-                                        {f.label}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                            <InputError message={errors.frequency} />
-                        </div>
-                        {isExpense && (
-                            <div className="grid gap-2">
-                                <Label htmlFor="rule-nature">
-                                    Tipo de gasto
-                                </Label>
-                                <NativeSelect
-                                    id="rule-nature"
-                                    name="nature"
-                                    defaultValue={rule?.nature ?? 'fixed'}
-                                >
-                                    <option value="fixed">Fijo</option>
-                                    <option value="variable">Variable</option>
-                                </NativeSelect>
-                            </div>
+                    </div>
+
+                    <RecurrenceSummary
+                        frequency={frequency}
+                        startsOn={startsOn}
+                        endsOn={endsOn || null}
+                        today={today}
+                        kind={kind}
+                    />
+
+                    <MoreOptions
+                        open={Boolean(
+                            rule?.ends_on || errors.ends_on || errors.nature,
                         )}
-                        <div className="grid gap-2">
-                            <Label htmlFor="rule-start">Primera fecha</Label>
-                            <Input
-                                id="rule-start"
-                                name="starts_on"
-                                type="date"
-                                defaultValue={rule?.starts_on ?? today}
-                                required
-                            />
-                            <InputError message={errors.starts_on} />
-                        </div>
+                    >
                         <div className="grid gap-2">
                             <Label htmlFor="rule-end">
-                                Hasta{' '}
+                                ¿Termina algún día?{' '}
                                 <span className="font-normal text-muted-foreground">
                                     (opcional)
                                 </span>
@@ -588,11 +625,42 @@ function RuleForm({
                                 id="rule-end"
                                 name="ends_on"
                                 type="date"
-                                defaultValue={rule?.ends_on ?? ''}
+                                value={endsOn}
+                                onChange={(event) =>
+                                    setEndsOn(event.target.value)
+                                }
+                                aria-describedby="rule-end-hint"
                             />
+                            <p
+                                id="rule-end-hint"
+                                className="text-xs text-muted-foreground"
+                            >
+                                Por ejemplo, el último plazo de una compra.
+                                Déjalo vacío si no tiene fin.
+                            </p>
                             <InputError message={errors.ends_on} />
                         </div>
-                    </div>
+                        {isExpense && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="rule-nature">
+                                    ¿El importe cambia?
+                                </Label>
+                                <NativeSelect
+                                    id="rule-nature"
+                                    name="nature"
+                                    defaultValue={rule?.nature ?? 'fixed'}
+                                >
+                                    <option value="fixed">
+                                        No, siempre es el mismo (gasto fijo)
+                                    </option>
+                                    <option value="variable">
+                                        Sí, varía (gasto variable)
+                                    </option>
+                                </NativeSelect>
+                                <InputError message={errors.nature} />
+                            </div>
+                        )}
+                    </MoreOptions>
 
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
@@ -602,7 +670,7 @@ function RuleForm({
                         </DialogClose>
                         <Button type="submit" disabled={processing}>
                             {processing && <Spinner />}
-                            {rule ? 'Guardar cambios' : 'Crear'}
+                            {rule ? 'Guardar cambios' : 'Guardar'}
                         </Button>
                     </DialogFooter>
                 </>

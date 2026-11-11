@@ -298,7 +298,7 @@ export function OfflineTransactionForm({
                         <option value="confirmed">
                             {isExpense ? 'Ya pagado' : 'Ya cobrado'}
                         </option>
-                        <option value="planned">Previsto</option>
+                        <option value="planned">Pendiente</option>
                     </NativeSelect>
                 </div>
             </div>

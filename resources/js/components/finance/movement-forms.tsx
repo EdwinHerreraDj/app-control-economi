@@ -3,6 +3,8 @@ import { useState } from 'react';
 import TransactionController from '@/actions/App/Http/Controllers/Finance/TransactionController';
 import TransferController from '@/actions/App/Http/Controllers/Finance/TransferController';
 import AmountInput from '@/components/finance/amount-input';
+import { MoreOptions } from '@/components/finance/more-options';
+import { RecurrenceSummary } from '@/components/finance/recurrence-summary';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +19,8 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/hooks/use-format';
 import { normalizeAmount } from '@/lib/amount';
+import { FREQUENCY_OPTIONS } from '@/lib/recurrence';
+import type { FrequencyValue } from '@/lib/recurrence';
 import type { AccountOption, CategoryOption, Movement } from '@/types/finance';
 import { newUuid } from '@/offline/storage';
 
@@ -69,19 +73,23 @@ function StatusField({
     defaultValue: string;
     error?: string;
 }) {
-    const confirmed = {
-        income: 'Cobrado',
-        expense: 'Pagado',
-        transfer: 'Realizada',
+    const done = {
+        income: ['Ya cobrado', 'Se suma ya a tu saldo'],
+        expense: ['Ya pagado', 'Se descuenta ya de tu saldo'],
+        transfer: ['Ya hecha', 'El dinero ya se ha movido'],
     }[kind];
 
     return (
         <fieldset className="grid gap-2">
-            <legend className="mb-1 text-sm font-medium">Estado</legend>
+            <legend className="mb-1 text-sm font-medium">¿Ya ha pasado?</legend>
             <div className="grid grid-cols-2 gap-2">
                 {[
-                    ['confirmed', confirmed, 'Cuenta en el saldo actual'],
-                    ['planned', 'Previsto', 'Aún no ha ocurrido'],
+                    ['confirmed', done[0], done[1]],
+                    [
+                        'planned',
+                        'Pendiente',
+                        'Aún no: no cuenta en el saldo hasta que lo marques',
+                    ],
                 ].map(([value, label, hint]) => (
                     <label
                         key={value}
@@ -122,6 +130,9 @@ export function TransactionForm({
 }) {
     // Identificador estable del alta: si se reenvía, el servidor no duplica.
     const [uuid] = useState(() => newUuid());
+    const [date, setDate] = useState(movement?.occurred_on ?? today);
+    const [repeats, setRepeats] = useState(false);
+    const [frequency, setFrequency] = useState<FrequencyValue>('monthly');
     const transform = useAmountTransform();
     const isExpense = kind === 'expense';
     const form = movement
@@ -161,8 +172,8 @@ export function TransactionForm({
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription className="sr-only">
                         {isExpense
-                            ? 'Registra un pago o un gasto previsto.'
-                            : 'Registra un cobro o un ingreso previsto.'}
+                            ? 'Apunta algo que has pagado o que tienes pendiente de pagar.'
+                            : 'Apunta algo que has cobrado o que tienes pendiente de cobrar.'}
                     </DialogDescription>
 
                     {!movement && (
@@ -181,7 +192,9 @@ export function TransactionForm({
                     />
 
                     <div className="grid gap-2">
-                        <Label htmlFor="movement-concept">Concepto</Label>
+                        <Label htmlFor="movement-concept">
+                            {isExpense ? '¿En qué?' : '¿De qué?'}
+                        </Label>
                         <Input
                             id="movement-concept"
                             name="concept"
@@ -196,7 +209,7 @@ export function TransactionForm({
                         <InputError message={errors.concept} />
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="movement-category">Categoría</Label>
                             <NativeSelect
@@ -222,7 +235,9 @@ export function TransactionForm({
 
                         <div className="grid gap-2">
                             <Label htmlFor="movement-account">
-                                {isExpense ? 'Pagado desde' : 'Cobrado en'}
+                                {isExpense
+                                    ? '¿De qué cuenta sale?'
+                                    : '¿En qué cuenta entra?'}
                             </Label>
                             <NativeSelect
                                 id="movement-account"
@@ -241,35 +256,20 @@ export function TransactionForm({
                             <InputError message={errors.account_id} />
                         </div>
 
-                        <div className="grid gap-2">
+                        <div className="grid gap-2 sm:col-span-2">
                             <Label htmlFor="movement-date">Fecha</Label>
                             <Input
                                 id="movement-date"
                                 name="occurred_on"
                                 type="date"
-                                defaultValue={movement?.occurred_on ?? today}
+                                value={date}
+                                onChange={(event) =>
+                                    setDate(event.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.occurred_on} />
                         </div>
-
-                        {isExpense && (
-                            <div className="grid gap-2">
-                                <Label htmlFor="movement-nature">
-                                    Tipo de gasto
-                                </Label>
-                                <NativeSelect
-                                    id="movement-nature"
-                                    name="nature"
-                                    defaultValue={movement?.nature ?? ''}
-                                >
-                                    <option value="">Sin indicar</option>
-                                    <option value="fixed">Fijo</option>
-                                    <option value="variable">Variable</option>
-                                </NativeSelect>
-                                <InputError message={errors.nature} />
-                            </div>
-                        )}
                     </div>
 
                     <StatusField
@@ -278,47 +278,143 @@ export function TransactionForm({
                         error={errors.status}
                     />
 
-                    {isExpense && (
+                    {!movement && (
+                        <div className="grid gap-3 rounded-lg border p-3">
+                            <label className="flex cursor-pointer items-start gap-3 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={repeats}
+                                    onChange={(event) =>
+                                        setRepeats(event.target.checked)
+                                    }
+                                    className="mt-0.5 size-4 accent-primary"
+                                />
+                                <span>
+                                    <span className="font-medium">
+                                        Se repite
+                                    </span>
+                                    <span className="block text-xs text-muted-foreground">
+                                        {isExpense
+                                            ? 'Como el alquiler, la luz o una suscripción: te recordaremos los próximos.'
+                                            : 'Como la nómina o una pensión: te recordaremos los próximos.'}
+                                    </span>
+                                </span>
+                            </label>
+
+                            {repeats && (
+                                <>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="movement-repeat">
+                                            ¿Cada cuánto?
+                                        </Label>
+                                        <NativeSelect
+                                            id="movement-repeat"
+                                            name="repeat"
+                                            value={frequency}
+                                            onChange={(event) =>
+                                                setFrequency(
+                                                    event.target
+                                                        .value as FrequencyValue,
+                                                )
+                                            }
+                                        >
+                                            {FREQUENCY_OPTIONS.map((option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </NativeSelect>
+                                        <InputError message={errors.repeat} />
+                                    </div>
+                                    <RecurrenceSummary
+                                        frequency={frequency}
+                                        startsOn={date}
+                                        today={today}
+                                        kind={kind}
+                                        skipFirst
+                                    />
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    <MoreOptions
+                        open={Boolean(
+                            movement?.notes ||
+                            movement?.due_on ||
+                            movement?.nature ||
+                            errors.notes ||
+                            errors.due_on ||
+                            errors.nature,
+                        )}
+                    >
+                        {isExpense && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="movement-nature">
+                                    ¿Es un gasto fijo?
+                                </Label>
+                                <NativeSelect
+                                    id="movement-nature"
+                                    name="nature"
+                                    defaultValue={movement?.nature ?? ''}
+                                >
+                                    <option value="">Sin indicar</option>
+                                    <option value="fixed">
+                                        Fijo (siempre el mismo importe)
+                                    </option>
+                                    <option value="variable">
+                                        Variable (cambia cada vez)
+                                    </option>
+                                </NativeSelect>
+                                <InputError message={errors.nature} />
+                            </div>
+                        )}
+
+                        {isExpense && (
+                            <div className="grid gap-2">
+                                <Label htmlFor="movement-due">
+                                    Fecha límite de pago{' '}
+                                    <span className="font-normal text-muted-foreground">
+                                        (opcional)
+                                    </span>
+                                </Label>
+                                <Input
+                                    id="movement-due"
+                                    name="due_on"
+                                    type="date"
+                                    defaultValue={movement?.due_on ?? ''}
+                                />
+                                <InputError message={errors.due_on} />
+                            </div>
+                        )}
+
                         <div className="grid gap-2">
-                            <Label htmlFor="movement-due">
-                                Vencimiento{' '}
+                            <Label htmlFor="movement-notes">
+                                Notas{' '}
                                 <span className="font-normal text-muted-foreground">
                                     (opcional)
                                 </span>
                             </Label>
-                            <Input
-                                id="movement-due"
-                                name="due_on"
-                                type="date"
-                                defaultValue={movement?.due_on ?? ''}
+                            <textarea
+                                id="movement-notes"
+                                name="notes"
+                                defaultValue={movement?.notes ?? ''}
+                                rows={2}
+                                maxLength={2000}
+                                className="rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
                             />
-                            <InputError message={errors.due_on} />
+                            <InputError message={errors.notes} />
                         </div>
-                    )}
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="movement-notes">
-                            Notas{' '}
-                            <span className="font-normal text-muted-foreground">
-                                (opcional)
-                            </span>
-                        </Label>
-                        <textarea
-                            id="movement-notes"
-                            name="notes"
-                            defaultValue={movement?.notes ?? ''}
-                            rows={2}
-                            maxLength={2000}
-                            className="rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
-                        />
-                        <InputError message={errors.notes} />
-                    </div>
+                    </MoreOptions>
 
                     <InputError message={errors.transaction ?? errors.kind} />
 
                     <FormFooter
                         processing={processing}
-                        label={movement ? 'Guardar cambios' : 'Registrar'}
+                        label={movement ? 'Guardar cambios' : 'Guardar'}
                     />
                 </>
             )}

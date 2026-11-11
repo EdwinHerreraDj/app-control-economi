@@ -17,13 +17,14 @@ enum Frequency: string
     public function label(): string
     {
         return match ($this) {
-            self::Weekly => 'Semanal',
-            self::Biweekly => 'Cada dos semanas',
-            self::Monthly => 'Mensual',
-            self::Bimonthly => 'Bimestral',
-            self::Quarterly => 'Trimestral',
-            self::Semiannual => 'Semestral',
-            self::Yearly => 'Anual',
+            // Lenguaje cotidiano: «cada mes» se entiende mejor que «mensual».
+            self::Weekly => 'Cada semana',
+            self::Biweekly => 'Cada 2 semanas',
+            self::Monthly => 'Cada mes',
+            self::Bimonthly => 'Cada 2 meses',
+            self::Quarterly => 'Cada 3 meses',
+            self::Semiannual => 'Cada 6 meses',
+            self::Yearly => 'Cada año',
         };
     }
 

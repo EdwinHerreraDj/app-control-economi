@@ -18,7 +18,10 @@ class ManageRecurringRules
     public function __construct(private readonly RecurringGenerator $generator) {}
 
     /**
-     * @param  array{kind: TransactionKind, account: Account, category: Category, amount: int, concept: string, nature: ExpenseNature|null, frequency: Frequency, starts_on: string, ends_on: string|null}  $data
+     * generate_from permite saltarse fechas ya registradas: al marcar un
+     * movimiento como «se repite», ese mismo movimiento es la primera vez.
+     *
+     * @param  array{kind: TransactionKind, account: Account, category: Category, amount: int, concept: string, nature: ExpenseNature|null, frequency: Frequency, starts_on: string, ends_on: string|null, generate_from?: string}  $data
      */
     public function create(User $user, array $data): RecurringRule
     {
@@ -28,7 +31,7 @@ class ManageRecurringRules
             $rule = new RecurringRule([
                 ...$this->attributes($data),
                 'currency' => $data['account']->currency,
-                'generate_from' => $user->today()->toDateString(),
+                'generate_from' => max($user->today()->toDateString(), $data['generate_from'] ?? ''),
             ]);
             $rule->user()->associate($user);
             $rule->save();
