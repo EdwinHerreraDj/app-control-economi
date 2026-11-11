@@ -19,9 +19,11 @@ class DebtRequest extends FinanceRequest
         $isUpdate = $this->route('debt') instanceof Debt;
 
         return [
-            'creditor' => ['required', 'string', 'max:100'],
+            'creditor' => ['nullable', 'string', 'max:100'],
             'concept' => ['required', 'string', 'max:255'],
             'principal' => ['required', new MoneyAmount($this->currency())],
+            // Lo que ya se había pagado antes de apuntarla (no mueve dinero).
+            'paid_before' => ['nullable', new MoneyAmount($this->currency(), allowZero: true)],
             'started_on' => ['required', 'date_format:Y-m-d'],
             'installment' => ['nullable', new MoneyAmount($this->currency())],
             'frequency' => ['nullable', 'required_with:next_due_on', Rule::enum(Frequency::class)],
@@ -40,7 +42,8 @@ class DebtRequest extends FinanceRequest
     public function attributes(): array
     {
         return [
-            'creditor' => 'acreedor',
+            'creditor' => 'a quién se lo debes',
+            'paid_before' => 'lo que ya has pagado',
             'concept' => 'concepto',
             'principal' => 'capital inicial',
             'started_on' => 'fecha de inicio',
@@ -69,9 +72,10 @@ class DebtRequest extends FinanceRequest
         $rate = $this->optionalString('interest_rate');
 
         return [
-            'creditor' => $this->string('creditor')->toString(),
+            'creditor' => $this->optionalString('creditor'),
             'concept' => $this->string('concept')->toString(),
             'principal' => (int) $this->minor('principal'),
+            'paid_before' => $this->minor('paid_before') ?? 0,
             'started_on' => $this->string('started_on')->toString(),
             'installment' => $this->minor('installment'),
             'frequency' => $this->filled('frequency') ? Frequency::from($this->string('frequency')->toString()) : null,

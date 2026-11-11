@@ -4,6 +4,7 @@ namespace App\Http\Requests\Finance;
 
 use App\Enums\ExpenseNature;
 use App\Enums\Frequency;
+use App\Enums\SpendingType;
 use App\Enums\TransactionKind;
 use App\Enums\TransactionStatus;
 use App\Models\Account;
@@ -56,6 +57,7 @@ class TransactionRequest extends FinanceRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'nature' => ['nullable', Rule::enum(ExpenseNature::class)],
             'due_on' => ['nullable', 'date_format:Y-m-d'],
+            'spending_type' => ['nullable', Rule::enum(SpendingType::class)],
         ];
     }
 
@@ -82,6 +84,7 @@ class TransactionRequest extends FinanceRequest
             'notes' => 'notas',
             'nature' => 'tipo de gasto',
             'due_on' => 'vencimiento',
+            'spending_type' => 'tipo de gasto',
             'repeat' => 'repetición',
         ];
     }
@@ -108,6 +111,7 @@ class TransactionRequest extends FinanceRequest
             'notes' => $validated['notes'] ?? null,
             'nature' => isset($validated['nature']) ? ExpenseNature::from($validated['nature']) : null,
             'due_on' => $validated['due_on'] ?? null,
+            'spending_type' => isset($validated['spending_type']) ? SpendingType::from($validated['spending_type']) : null,
         ];
     }
 }

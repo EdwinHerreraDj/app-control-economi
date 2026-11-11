@@ -3,6 +3,7 @@
 namespace App\Actions\Finance;
 
 use App\Enums\ExpenseNature;
+use App\Enums\SpendingType;
 use App\Enums\TransactionKind;
 use App\Enums\TransactionStatus;
 use App\Models\Account;
@@ -32,6 +33,7 @@ class RecordTransaction
      *     notes?: string|null,
      *     nature?: ExpenseNature|null,
      *     due_on?: string|null,
+     *     spending_type?: SpendingType|null,
      *     uuid?: string|null,
      * }  $data
      */
@@ -104,6 +106,50 @@ class RecordTransaction
     }
 
     /**
+     * «Ya lo pagué» / «Ya lo cobré»: confirma un movimiento pendiente con lo
+     * que ocurrió de verdad (el importe de la luz cambia cada mes, o se pagó
+     * otro día o desde otra cuenta). Si viene de un pago habitual, sigue
+     * enlazado a su fecha prevista: no se vuelve a generar.
+     */
+    public function confirmWith(Transaction $transaction, ?int $amount = null, ?CarbonImmutable $on = null, ?Account $account = null): void
+    {
+        $this->guardEditable($transaction);
+
+        if ($transaction->status === TransactionStatus::Confirmed) {
+            return;
+        }
+
+        if ($account !== null && $account->isNot($transaction->account)) {
+            $this->guardAccount($account);
+        }
+
+        $transaction->update([
+            'status' => TransactionStatus::Confirmed,
+            'occurred_on' => ($on ?? $transaction->occurred_on)->toDateString(),
+            'amount' => $amount ?? $transaction->amount,
+            'account_id' => ($account ?? $transaction->account)->id,
+            'currency' => ($account ?? $transaction->account)->currency,
+        ]);
+    }
+
+    /**
+     * Borra un ingreso o gasto. Si era una fecha de un pago habitual, se
+     * marca como omitida en lugar de borrarla, para que no vuelva a aparecer.
+     */
+    public function delete(Transaction $transaction): void
+    {
+        $this->guardEditable($transaction);
+
+        if ($transaction->recurring_rule_id !== null && $transaction->status === TransactionStatus::Planned) {
+            $transaction->update(['voided_at' => now(), 'void_reason' => 'Omitido']);
+
+            return;
+        }
+
+        $transaction->delete();
+    }
+
+    /**
      * Anula el movimiento conservándolo en el historial: deja de contar
      * para saldos y estadísticas, pero queda constancia de qué pasó.
      */
@@ -138,6 +184,7 @@ class RecordTransaction
             // Fijo/variable y vencimiento solo tienen sentido en los gastos.
             'nature' => $isExpense ? ($data['nature'] ?? null) : null,
             'due_on' => $isExpense ? ($data['due_on'] ?? null) : null,
+            'spending_type' => $isExpense ? ($data['spending_type'] ?? null) : null,
         ];
     }
 

@@ -1,531 +1,507 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowLeftRight,
+    AlertCircle,
+    ArrowRight,
     CalendarClock,
-    ChartColumn,
-    CircleCheck,
-    CircleHelp,
-    Eye,
-    HandHeart,
-    Landmark,
-    Minus,
-    Plus,
+    HandCoins,
+    Info,
+    PiggyBank,
+    Sparkles,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { BalanceLineChart } from '@/components/charts/balance-line-chart';
-import { ChartCard } from '@/components/charts/chart-card';
-import { monthLabel } from '@/components/charts/chart-utils';
-import { ColumnChart } from '@/components/charts/column-chart';
-import { Explanation } from '@/components/charts/explanation';
-import { CategoryIcon } from '@/components/finance/category-badge';
+import { useState } from 'react';
 import { MascotCompanion } from '@/components/mascot/mascot-companion';
 import { PendingSyncNotice } from '@/components/offline/pending-sync-notice';
-import type { MascotCompanionData } from '@/types/branding';
+import {
+    ConfirmPendingSheet,
+    DebtPaymentSheet,
+} from '@/components/payments/pay-sheets';
+import type {
+    InstallmentItem,
+    PendingItem,
+} from '@/components/payments/pay-sheets';
+import { QuickButtons } from '@/components/quick/quick-add';
+import { openQuick } from '@/components/quick/quick-store';
 import { Button } from '@/components/ui/button';
-import { ProgressBar } from '@/components/ui/progress-bar';
 import { useFormat } from '@/hooks/use-format';
 import { cn } from '@/lib/utils';
-import { dashboard, statistics } from '@/routes';
-import { index as accountsIndex } from '@/routes/accounts';
-import { index as recurringIndex } from '@/routes/recurring';
-import { index as transactionsIndex } from '@/routes/transactions';
+import { dashboard } from '@/routes';
+import { index as monthsIndex } from '@/routes/months';
+import { index as paymentsIndex } from '@/routes/payments';
+import { show as setupShow } from '@/routes/setup';
+import type { MascotCompanionData } from '@/types/branding';
 
-type Tone = 'calm' | 'attention' | 'support' | 'unknown';
-
-type Forecast = {
-    from: string;
-    until: string;
-    real: string;
-    planned_income: string;
-    planned_expense: string;
-    installments: string;
-    projected: string;
-    lowest: string;
-    lowest_on: string;
-    shortfall: string | null;
-    overdue: number;
-    timeline: { date: string; balance: string }[];
-    assumptions: string[];
+type Upcoming = PendingItem & {
+    category: { name: string; icon: string; color: string } | null;
+    recurring: boolean;
 };
 
 type Props = {
-    headline: { tone: Tone; title: string; text: string };
-    mascot: MascotCompanionData | null;
-    balance: string;
-    month: { income: string; expense: string; net: string; debt_paid: string };
-    forecast: Forecast | null;
-    savings: {
-        amount: string | null;
-        has_margin?: boolean;
-        explanation: string[];
-    };
-    evolution: {
-        month: string;
-        income: string;
-        expense: string;
-        net: string;
-    }[];
-    upcoming: {
-        type: 'movement' | 'debt';
-        id: number;
-        kind: 'income' | 'expense';
-        date: string;
-        overdue: boolean;
-        concept: string;
-        amount: string | null;
-    }[];
-    budgets: {
-        category: { id: number; name: string; icon: string; color: string };
-        limit: string | null;
-        spent: string;
-        percent: number | null;
-        status: string;
-    }[];
-    goals: {
-        id: number;
-        name: string;
-        icon: string;
-        color: string;
+    overview: {
+        available: string;
         saved: string;
-        target_amount: string;
-        percent: number;
-    }[];
-    quality: {
-        has_accounts: boolean;
-        has_movements: boolean;
-        last_movement_on: string | null;
-        stale: boolean;
-        overdue_planned: number;
+        has_savings_account: boolean;
+        accounts: {
+            id: number;
+            name: string;
+            type: string;
+            savings: boolean;
+            balance: string;
+        }[];
+        month: {
+            month: string;
+            received: string;
+            spent: string;
+            debt_paid: string;
+        };
+        upcoming: {
+            payments: Upcoming[];
+            incomes: Upcoming[];
+            installments: InstallmentItem[];
+        };
+        debts: { owed: string; count: number };
+        end_of_month: {
+            expected_in: string;
+            expected_out: string;
+            estimate: string;
+            until: string;
+        };
     };
+    notices: { tone: 'warning' | 'info'; text: string }[];
+    mascot: MascotCompanionData | null;
+    needsSetup: boolean;
+    firstName: string;
+    today: string;
+    interestCategoryId: number | null;
 };
 
-const TONES: Record<Tone, { icon: LucideIcon; className: string }> = {
-    calm: { icon: CircleCheck, className: 'bg-primary/10 text-primary' },
-    attention: { icon: Eye, className: 'bg-accent text-accent-foreground' },
-    support: { icon: HandHeart, className: 'bg-accent text-accent-foreground' },
-    unknown: { icon: CircleHelp, className: 'bg-muted text-muted-foreground' },
-};
+function Card({
+    className,
+    children,
+}: {
+    className?: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <section
+            className={cn(
+                'rounded-2xl border bg-card p-5 shadow-xs',
+                className,
+            )}
+        >
+            {children}
+        </section>
+    );
+}
 
-export default function Dashboard(props: Props) {
-    const {
-        headline,
-        mascot,
-        balance,
-        month,
-        forecast,
-        savings,
-        evolution,
-        upcoming,
-        budgets,
-        goals,
-        quality,
-    } = props;
-    const { auth } = usePage().props;
+function monthName(month: string, locale: string): string {
+    const [year, number] = month.split('-').map(Number);
+
+    return new Intl.DateTimeFormat(locale, {
+        month: 'long',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, number - 1, 1)));
+}
+
+export default function Dashboard({
+    overview,
+    notices,
+    mascot,
+    needsSetup,
+    firstName,
+    today,
+    interestCategoryId,
+}: Props) {
     const format = useFormat();
-    const locale = format.preferences.number_locale;
-    const firstName = auth.user.name.split(' ')[0];
-    const tone = TONES[headline.tone];
+    const [paying, setPaying] = useState<PendingItem | null>(null);
+    const [collecting, setCollecting] = useState<PendingItem | null>(null);
+    const [installment, setInstallment] = useState<InstallmentItem | null>(
+        null,
+    );
+
+    const { upcoming, month, debts, end_of_month: end } = overview;
+    const spendable = overview.accounts.filter((a) => !a.savings);
+    const toPay = [
+        ...upcoming.payments.map((item) => ({
+            ...item,
+            type: 'payment' as const,
+        })),
+        ...upcoming.installments.map((item) => ({
+            ...item,
+            type: 'installment' as const,
+        })),
+    ].sort((a, b) => a.date.localeCompare(b.date));
+    const hasExpectations =
+        Number(end.expected_in) !== 0 || Number(end.expected_out) !== 0;
+    const negative = Number(overview.available) < 0;
+    const monthLabel = monthName(month.month, format.preferences.number_locale);
+
+    const when = (date: string, overdue: boolean) => {
+        if (overdue) {
+            return `Pendiente desde el ${format.day(date)}`;
+        }
+
+        if (date === today) {
+            return 'Hoy';
+        }
+
+        return format.day(date);
+    };
 
     return (
         <>
-            <Head title="Panel" />
+            <Head title="Inicio" />
 
-            <div className="flex flex-col gap-5 p-4 md:p-6">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                        <p className="text-sm text-muted-foreground">
-                            Hola, {firstName}
-                        </p>
-                        <h1 className="text-2xl font-semibold">Tu situación</h1>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button size="sm" asChild>
-                            <Link
-                                href={transactionsIndex({
-                                    query: { new: 'expense' },
-                                })}
-                            >
-                                <Minus aria-hidden="true" />
-                                Gasto
-                            </Link>
-                        </Button>
-                        <Button size="sm" variant="secondary" asChild>
-                            <Link
-                                href={transactionsIndex({
-                                    query: { new: 'income' },
-                                })}
-                            >
-                                <Plus aria-hidden="true" />
-                                Ingreso
-                            </Link>
-                        </Button>
-                        <Button size="sm" variant="outline" asChild>
-                            <Link
-                                href={transactionsIndex({
-                                    query: { new: 'transfer' },
-                                })}
-                            >
-                                <ArrowLeftRight aria-hidden="true" />
-                                <span className="sr-only sm:not-sr-only">
-                                    Transferir
-                                </span>
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-
-                <section
-                    aria-live="polite"
-                    className="flex gap-4 rounded-2xl border bg-card p-5 shadow-xs"
-                >
-                    <span
-                        className={cn(
-                            'flex size-11 shrink-0 items-center justify-center rounded-xl',
-                            tone.className,
-                        )}
-                    >
-                        <tone.icon className="size-5" aria-hidden="true" />
-                    </span>
-                    <div className="space-y-1">
-                        <h2 className="font-semibold">{headline.title}</h2>
-                        <p className="text-sm text-muted-foreground">
-                            {headline.text}
-                        </p>
-                        {headline.tone === 'support' && (
-                            <Link
-                                href={recurringIndex()}
-                                className="text-sm text-primary underline-offset-4 hover:underline"
-                            >
-                                Ver próximos vencimientos
-                            </Link>
-                        )}
-                        {headline.tone === 'unknown' &&
-                            !quality.has_accounts && (
-                                <Link
-                                    href={accountsIndex()}
-                                    className="text-sm text-primary underline-offset-4 hover:underline"
-                                >
-                                    Añadir una cuenta
-                                </Link>
-                            )}
-                    </div>
-                </section>
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4 md:p-6">
+                <header>
+                    <p className="text-sm text-muted-foreground">
+                        Hola, {firstName}
+                    </p>
+                    <h1 className="text-2xl font-semibold">Tu dinero</h1>
+                </header>
 
                 <PendingSyncNotice />
 
-                {mascot && <MascotCompanion mascot={mascot} />}
-
-                <section
-                    aria-label="Resumen"
-                    className="grid grid-cols-2 gap-3 lg:grid-cols-4"
-                >
-                    <Tile
-                        label="Saldo real"
-                        value={format.money(balance)}
-                        hint="Movimientos confirmados"
-                    />
-                    <Tile
-                        label="Ingresos del mes"
-                        value={format.money(month.income)}
-                        hint="Cobrados"
-                    />
-                    <Tile
-                        label="Gastos del mes"
-                        value={format.money(month.expense)}
-                        hint="Pagados"
-                    />
-                    <Tile
-                        label="Pagos de deuda"
-                        value={format.money(month.debt_paid)}
-                        hint="Este mes, capital e intereses"
-                    />
-                </section>
-
-                <div className="grid gap-5 lg:grid-cols-3">
-                    {forecast && (
-                        <ChartCard
-                            className="lg:col-span-2"
-                            title="Saldo previsto"
-                            summary={
-                                <>
-                                    De {format.money(forecast.real)} hoy a{' '}
-                                    <strong className="text-foreground">
-                                        {format.money(forecast.projected)}
-                                    </strong>{' '}
-                                    el {format.day(forecast.until)}. Punto más
-                                    bajo: {format.money(forecast.lowest)} el{' '}
-                                    {format.day(forecast.lowest_on)}.
-                                </>
-                            }
-                            table={{
-                                columns: ['Fecha', 'Saldo previsto'],
-                                rows: forecast.timeline.map((p) => [
-                                    format.day(p.date),
-                                    format.money(p.balance),
-                                ]),
-                            }}
-                            footer={
-                                <Explanation items={forecast.assumptions} />
-                            }
-                        >
-                            <BalanceLineChart
-                                points={forecast.timeline.map((p) => ({
-                                    date: p.date,
-                                    value: p.balance,
-                                }))}
-                                ariaLabel="Evolución prevista del saldo"
-                                step
-                                markLowest
+                {needsSetup && (
+                    <Card className="border-primary/40 bg-primary/5">
+                        <div className="flex items-start gap-3">
+                            <Sparkles
+                                className="mt-0.5 size-5 shrink-0 text-primary"
+                                aria-hidden="true"
                             />
-                        </ChartCard>
+                            <div className="flex-1">
+                                <h2 className="font-semibold">
+                                    Cuéntanos un poco de tu dinero
+                                </h2>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Cuatro preguntas rápidas (cuánto tienes,
+                                    cuánto cobras, qué pagas y si debes algo).
+                                    Puedes saltarte las que quieras.
+                                </p>
+                                <Button asChild className="mt-3">
+                                    <Link href={setupShow()}>Empezar</Link>
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* 1. ¿Cuánto dinero tengo ahora? */}
+                <Card>
+                    <h2 className="text-sm font-medium text-muted-foreground">
+                        Tienes para gastar
+                    </h2>
+                    <p
+                        className={cn(
+                            'mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl',
+                            negative && 'text-destructive',
+                        )}
+                    >
+                        {format.money(overview.available)}
+                    </p>
+                    {spendable.length > 1 && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            {spendable
+                                .map(
+                                    (a) =>
+                                        `${a.name}: ${format.money(a.balance)}`,
+                                )
+                                .join(' · ')}
+                        </p>
+                    )}
+                    {negative && (
+                        <p className="mt-2 text-sm">
+                            Estás en números rojos: has gastado más de lo que
+                            tenías apuntado.
+                        </p>
                     )}
 
-                    <section className="flex min-w-0 flex-col gap-3 rounded-2xl border bg-card p-5 shadow-xs">
-                        <h2 className="font-semibold">
-                            Capacidad de ahorro estimada
-                        </h2>
-                        {savings.amount === null ? (
-                            <p className="text-sm text-muted-foreground">
-                                Sin información suficiente todavía.
-                            </p>
-                        ) : (
-                            <>
-                                <p className="text-3xl font-semibold tabular-nums">
-                                    {format.money(savings.amount)}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {savings.has_margin
-                                        ? 'Margen que podrías apartar este mes sin quedarte corto con lo previsto.'
-                                        : 'Este mes no queda margen después de tus pagos previstos y reservas.'}
-                                </p>
-                            </>
-                        )}
-                        <Explanation items={savings.explanation} />
-                    </section>
-                </div>
+                    <button
+                        type="button"
+                        onClick={() => openQuick('savings')}
+                        className="mt-4 flex w-full items-center gap-3 rounded-xl bg-muted/60 p-3 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                        <PiggyBank
+                            className="size-5 shrink-0 text-primary"
+                            aria-hidden="true"
+                        />
+                        <span className="flex-1 text-sm">
+                            {overview.has_savings_account ? (
+                                <>
+                                    Ahorrado aparte:{' '}
+                                    <span className="font-semibold tabular-nums">
+                                        {format.money(overview.saved)}
+                                    </span>
+                                </>
+                            ) : (
+                                '¿Guardas dinero aparte? Crea tu hucha'
+                            )}
+                        </span>
+                        <ArrowRight
+                            className="size-4 text-muted-foreground"
+                            aria-hidden="true"
+                        />
+                    </button>
+                </Card>
 
-                <div className="grid gap-5 lg:grid-cols-3">
-                    <section className="flex min-w-0 flex-col gap-3 rounded-2xl border bg-card p-5 shadow-xs">
-                        <div className="flex items-center justify-between gap-2">
-                            <h2 className="font-semibold">Próximos 14 días</h2>
-                            <Link
-                                href={recurringIndex()}
-                                className="text-sm text-primary underline-offset-4 hover:underline"
+                <QuickButtons />
+
+                {notices.length > 0 && (
+                    <ul className="grid gap-2" aria-label="Avisos">
+                        {notices.map((notice) => (
+                            <li
+                                key={notice.text}
+                                className={cn(
+                                    'flex items-start gap-3 rounded-xl border p-3 text-sm',
+                                    notice.tone === 'warning' &&
+                                        'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100',
+                                )}
                             >
-                                Ver todo
-                            </Link>
+                                {notice.tone === 'warning' ? (
+                                    <AlertCircle
+                                        className="mt-0.5 size-4 shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                ) : (
+                                    <Info
+                                        className="mt-0.5 size-4 shrink-0 text-primary"
+                                        aria-hidden="true"
+                                    />
+                                )}
+                                {notice.text}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                {/* 2 y 3. Este mes. */}
+                <Card>
+                    <div className="flex items-baseline justify-between gap-2">
+                        <h2 className="font-semibold first-letter:uppercase">
+                            {monthLabel}
+                        </h2>
+                        <Link
+                            href={monthsIndex()}
+                            className="text-sm text-primary underline-offset-4 hover:underline"
+                        >
+                            Ver mi mes
+                        </Link>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-muted/50 p-3">
+                            <dt className="text-sm text-muted-foreground">
+                                Te ha entrado
+                            </dt>
+                            <dd className="text-xl font-semibold tabular-nums">
+                                {format.money(month.received)}
+                            </dd>
                         </div>
-                        {upcoming.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No hay cobros ni pagos previstos.
-                            </p>
-                        ) : (
-                            <ul className="space-y-2">
-                                {upcoming.map((item) => (
+                        <div className="rounded-xl bg-muted/50 p-3">
+                            <dt className="text-sm text-muted-foreground">
+                                Has gastado
+                            </dt>
+                            <dd className="text-xl font-semibold tabular-nums">
+                                {format.money(month.spent)}
+                            </dd>
+                        </div>
+                    </dl>
+                    {Number(month.debt_paid) > 0 && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Además, has pagado {format.money(month.debt_paid)}{' '}
+                            en cuotas de deudas.
+                        </p>
+                    )}
+                </Card>
+
+                {/* 4. ¿Qué tengo que pagar próximamente? */}
+                <Card>
+                    <div className="flex items-baseline justify-between gap-2">
+                        <h2 className="font-semibold">Te toca pagar pronto</h2>
+                        <Link
+                            href={paymentsIndex()}
+                            className="text-sm text-primary underline-offset-4 hover:underline"
+                        >
+                            Mis pagos
+                        </Link>
+                    </div>
+                    {toPay.length === 0 ? (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                            No tienes pagos en los próximos 30 días.{' '}
+                            <Link
+                                href={paymentsIndex()}
+                                className="text-primary underline-offset-4 hover:underline"
+                            >
+                                Apunta lo que pagas cada mes
+                            </Link>{' '}
+                            y te avisaremos.
+                        </p>
+                    ) : (
+                        <ul className="mt-2 divide-y">
+                            {toPay.slice(0, 5).map((item) => (
+                                <li
+                                    key={`${item.type}-${item.id}`}
+                                    className="flex items-center gap-3 py-3"
+                                >
+                                    <CalendarClock
+                                        className={cn(
+                                            'size-5 shrink-0',
+                                            item.overdue
+                                                ? 'text-destructive'
+                                                : 'text-muted-foreground',
+                                        )}
+                                        aria-hidden="true"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-medium">
+                                            {item.concept}
+                                        </p>
+                                        <p
+                                            className={cn(
+                                                'text-xs first-letter:uppercase',
+                                                item.overdue
+                                                    ? 'text-destructive'
+                                                    : 'text-muted-foreground',
+                                            )}
+                                        >
+                                            {when(item.date, item.overdue)}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="font-semibold tabular-nums">
+                                            {format.money(item.amount)}
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8"
+                                            onClick={() =>
+                                                item.type === 'payment'
+                                                    ? setPaying(item)
+                                                    : setInstallment(item)
+                                            }
+                                        >
+                                            {item.type === 'payment'
+                                                ? 'Ya lo pagué'
+                                                : 'Pagué la cuota'}
+                                        </Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {upcoming.incomes.length > 0 && (
+                        <>
+                            <h3 className="mt-4 text-sm font-medium text-muted-foreground">
+                                Esperas cobrar
+                            </h3>
+                            <ul className="divide-y">
+                                {upcoming.incomes.slice(0, 3).map((item) => (
                                     <li
-                                        key={`${item.type}-${item.id}`}
-                                        className="flex items-center gap-2 text-sm"
+                                        key={item.id}
+                                        className="flex items-center gap-3 py-3"
                                     >
-                                        <CalendarClock
-                                            className="size-4 shrink-0 text-muted-foreground"
+                                        <HandCoins
+                                            className="size-5 shrink-0 text-primary"
                                             aria-hidden="true"
                                         />
-                                        <span className="min-w-0 flex-1 truncate">
-                                            {item.concept}
-                                            <span className="block text-xs text-muted-foreground">
-                                                {format.day(item.date)}
-                                                {item.overdue &&
-                                                    ' · fecha pasada'}
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium">
+                                                {item.concept}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground first-letter:uppercase">
+                                                {when(item.date, item.overdue)}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="font-semibold text-primary tabular-nums">
+                                                + {format.money(item.amount)}
                                             </span>
-                                        </span>
-                                        {item.amount && (
-                                            <span
-                                                className={cn(
-                                                    'shrink-0 font-medium tabular-nums',
-                                                    item.kind === 'income' &&
-                                                        'text-primary',
-                                                )}
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8"
+                                                onClick={() =>
+                                                    setCollecting(item)
+                                                }
                                             >
-                                                {item.kind === 'income'
-                                                    ? '+'
-                                                    : '−'}{' '}
-                                                {format.money(item.amount)}
-                                            </span>
-                                        )}
+                                                Ya lo cobré
+                                            </Button>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
-                        )}
-                    </section>
+                        </>
+                    )}
+                </Card>
 
-                    <ChartCard
-                        className="lg:col-span-2"
-                        title="Ingresos y gastos"
-                        summary={`Últimos ${evolution.length} meses, solo movimientos confirmados. Las transferencias y el capital de las deudas no cuentan.`}
-                        legend={[
-                            { label: 'Ingresos', color: 'var(--series-1)' },
-                            { label: 'Gastos', color: 'var(--series-2)' },
-                        ]}
-                        table={{
-                            columns: [
-                                'Mes',
-                                'Ingresos',
-                                'Gastos',
-                                'Diferencia',
-                            ],
-                            rows: evolution.map((row) => [
-                                monthLabel(row.month, locale, 'long'),
-                                format.money(row.income),
-                                format.money(row.expense),
-                                format.money(row.net),
-                            ]),
-                        }}
-                        actions={
-                            <Button size="sm" variant="ghost" asChild>
-                                <Link href={statistics()}>
-                                    <ChartColumn aria-hidden="true" />
-                                    Estadísticas
-                                </Link>
-                            </Button>
-                        }
-                    >
-                        <ColumnChart
-                            ariaLabel="Ingresos y gastos por mes"
-                            series={[
-                                {
-                                    key: 'income',
-                                    label: 'Ingresos',
-                                    color: 'var(--series-1)',
-                                },
-                                {
-                                    key: 'expense',
-                                    label: 'Gastos',
-                                    color: 'var(--series-2)',
-                                },
-                            ]}
-                            data={evolution.map((row) => ({
-                                key: row.month,
-                                label: monthLabel(row.month, locale),
-                                values: {
-                                    income: row.income,
-                                    expense: row.expense,
-                                },
-                            }))}
-                        />
-                    </ChartCard>
-                </div>
-
-                {(budgets.length > 0 || goals.length > 0) && (
-                    <div className="grid gap-5 lg:grid-cols-2">
-                        {budgets.length > 0 && (
-                            <section className="min-w-0 space-y-3 rounded-2xl border bg-card p-5 shadow-xs">
-                                <h2 className="font-semibold">
-                                    Presupuestos del mes
+                {/* 5. ¿Cuánto debo todavía? */}
+                {debts.count > 0 && (
+                    <Card>
+                        <Link
+                            href={paymentsIndex({ query: { ver: 'deudas' } })}
+                            className="flex items-center gap-3"
+                        >
+                            <div className="flex-1">
+                                <h2 className="text-sm font-medium text-muted-foreground">
+                                    Te falta por pagar de tus deudas
                                 </h2>
-                                <ul className="space-y-3">
-                                    {budgets.map((row) => (
-                                        <li
-                                            key={row.category.id}
-                                            className="space-y-1"
-                                        >
-                                            <div className="flex items-center justify-between gap-2 text-sm">
-                                                <span className="flex items-center gap-2">
-                                                    <CategoryIcon
-                                                        icon={row.category.icon}
-                                                        color={
-                                                            row.category.color
-                                                        }
-                                                        className="size-7"
-                                                    />
-                                                    {row.category.name}
-                                                </span>
-                                                <span className="text-muted-foreground tabular-nums">
-                                                    {format.money(row.spent)} /{' '}
-                                                    {format.money(
-                                                        row.limit ?? '0',
-                                                    )}
-                                                </span>
-                                            </div>
-                                            <ProgressBar
-                                                value={row.percent ?? 0}
-                                                label={`Presupuesto de ${row.category.name}`}
-                                                valueText={`${row.percent ?? 0} %`}
-                                                tone={
-                                                    row.status === 'over' ||
-                                                    row.status ===
-                                                        'over_planned'
-                                                        ? 'warning'
-                                                        : 'default'
-                                                }
-                                            />
-                                        </li>
-                                    ))}
-                                </ul>
-                            </section>
-                        )}
-                        {goals.length > 0 && (
-                            <section className="min-w-0 space-y-3 rounded-2xl border bg-card p-5 shadow-xs">
-                                <h2 className="font-semibold">Objetivos</h2>
-                                <ul className="space-y-3">
-                                    {goals.map((goal) => (
-                                        <li key={goal.id} className="space-y-1">
-                                            <div className="flex items-center justify-between gap-2 text-sm">
-                                                <span className="flex items-center gap-2">
-                                                    <CategoryIcon
-                                                        icon={goal.icon}
-                                                        color={goal.color}
-                                                        className="size-7"
-                                                    />
-                                                    {goal.name}
-                                                </span>
-                                                <span className="text-muted-foreground tabular-nums">
-                                                    {goal.percent} %
-                                                </span>
-                                            </div>
-                                            <ProgressBar
-                                                value={goal.percent}
-                                                label={`Progreso de ${goal.name}`}
-                                                valueText={`${format.money(goal.saved)} de ${format.money(goal.target_amount)}`}
-                                            />
-                                        </li>
-                                    ))}
-                                </ul>
-                            </section>
-                        )}
-                    </div>
+                                <p className="text-2xl font-semibold tabular-nums">
+                                    {format.money(debts.owed)}
+                                </p>
+                            </div>
+                            <ArrowRight
+                                className="size-5 text-muted-foreground"
+                                aria-hidden="true"
+                            />
+                        </Link>
+                    </Card>
                 )}
 
-                {!quality.has_movements && quality.has_accounts && (
-                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Landmark className="size-4" aria-hidden="true" />
-                        Registra tus primeros movimientos para ver tu evolución.
-                    </p>
+                {hasExpectations && (
+                    <Card className="bg-muted/40">
+                        <h2 className="text-sm font-medium text-muted-foreground">
+                            Si todo va como esperas, a final de mes te quedarían
+                        </h2>
+                        <p className="text-2xl font-semibold tabular-nums">
+                            {format.money(end.estimate)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Es una estimación, no dinero que tengas ya: suma lo
+                            que esperas cobrar ({format.money(end.expected_in)})
+                            y resta lo que te queda por pagar este mes (
+                            {format.money(end.expected_out)}).
+                        </p>
+                    </Card>
                 )}
+
+                {mascot && <MascotCompanion mascot={mascot} />}
             </div>
+
+            <ConfirmPendingSheet
+                item={paying}
+                kind="expense"
+                accounts={overview.accounts}
+                today={today}
+                onClose={() => setPaying(null)}
+            />
+            <ConfirmPendingSheet
+                item={collecting}
+                kind="income"
+                accounts={overview.accounts}
+                today={today}
+                onClose={() => setCollecting(null)}
+            />
+            <DebtPaymentSheet
+                item={installment}
+                accounts={overview.accounts}
+                today={today}
+                interestCategoryId={interestCategoryId}
+                onClose={() => setInstallment(null)}
+            />
         </>
     );
 }
 
-function Tile({
-    label,
-    value,
-    hint,
-}: {
-    label: string;
-    value: string;
-    hint: string;
-}) {
-    return (
-        <div className="rounded-2xl border bg-card p-4 shadow-xs">
-            <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
-            <p className="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
-                {value}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-        </div>
-    );
-}
-
 Dashboard.layout = {
-    breadcrumbs: [{ title: 'Panel', href: dashboard() }],
+    breadcrumbs: [{ title: 'Inicio', href: dashboard() }],
 };

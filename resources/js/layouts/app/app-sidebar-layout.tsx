@@ -4,6 +4,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { MobileNav } from '@/components/mobile-nav';
 import { SyncProvider } from '@/components/offline/sync-provider';
+import { QuickAddHost } from '@/components/quick/quick-add';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -31,6 +32,7 @@ export default function AppSidebarLayout({
             </AppContent>
             <MobileNav />
             <SyncProvider />
+            <QuickAddHost />
         </AppShell>
     );
 }

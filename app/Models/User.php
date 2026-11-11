@@ -31,6 +31,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string $timezone
  * @property string $locale Idioma de la interfaz.
  * @property CarbonImmutable|null $onboarded_at
+ * @property CarbonImmutable|null $setup_completed_at
  * @property bool $must_change_password Entró con una contraseña temporal del superusuario.
  * @property string $mascot_visibility shown | minimized | hidden
  * @property string $mascot_motion full | reduced | none
@@ -68,6 +69,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'activated_at' => 'datetime',
             'suspended_at' => 'datetime',
             'onboarded_at' => 'datetime',
+            'setup_completed_at' => 'datetime',
             'must_change_password' => 'boolean',
         ];
     }
@@ -75,6 +77,12 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Ha completado la primera configuración (al menos, la moneda).
      */
+    /** Primera configuración (dinero, ingresos, pagos, deudas) terminada u omitida. */
+    public function hasCompletedSetup(): bool
+    {
+        return $this->setup_completed_at !== null;
+    }
+
     public function hasCompletedOnboarding(): bool
     {
         return $this->onboarded_at !== null && $this->currency !== null;

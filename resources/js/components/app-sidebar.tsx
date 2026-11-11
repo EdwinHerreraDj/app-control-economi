@@ -1,22 +1,24 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
+    CalendarCheck,
+    CalendarDays,
     ChartColumn,
     Gauge,
-    HandCoins,
-    Repeat,
-    Target,
+    House,
     Landmark,
-    LayoutGrid,
     Palette,
     PawPrint,
+    Plus,
     ScrollText,
     Shapes,
+    Target,
     Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { openQuick } from '@/components/quick/quick-store';
 import {
     Sidebar,
     SidebarContent,
@@ -27,91 +29,41 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard, statistics } from '@/routes';
+import { index as accountsIndex } from '@/routes/accounts';
 import { index as auditIndex } from '@/routes/admin/audit';
 import { edit as brandingEdit } from '@/routes/admin/branding';
 import { index as mascotsIndex } from '@/routes/admin/mascots';
 import { index as usersIndex } from '@/routes/admin/users';
-import { index as accountsIndex } from '@/routes/accounts';
 import { index as budgetsIndex } from '@/routes/budgets';
-import { index as debtsIndex } from '@/routes/debts';
-import { index as goalsIndex } from '@/routes/goals';
-import { index as recurringIndex } from '@/routes/recurring';
 import { index as categoriesIndex } from '@/routes/categories';
+import { index as goalsIndex } from '@/routes/goals';
+import { index as monthsIndex } from '@/routes/months';
+import { index as paymentsIndex } from '@/routes/payments';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Panel',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Movimientos',
-        href: transactionsIndex(),
-        icon: ArrowLeftRight,
-    },
-    {
-        title: 'Cuentas',
-        href: accountsIndex(),
-        icon: Landmark,
-    },
-    {
-        title: 'Categorías',
-        href: categoriesIndex(),
-        icon: Shapes,
-    },
-    {
-        title: 'Estadísticas',
-        href: statistics(),
-        icon: ChartColumn,
-    },
+/** Lo esencial: cuatro apartados. */
+export const mainNavItems: NavItem[] = [
+    { title: 'Inicio', href: dashboard(), icon: House },
+    { title: 'Movimientos', href: transactionsIndex(), icon: ArrowLeftRight },
+    { title: 'Mis pagos', href: paymentsIndex(), icon: CalendarCheck },
+    { title: 'Mis meses', href: monthsIndex(), icon: CalendarDays },
 ];
 
-const planningNavItems: NavItem[] = [
-    {
-        title: 'Recurrentes',
-        href: recurringIndex(),
-        icon: Repeat,
-    },
-    {
-        title: 'Presupuestos',
-        href: budgetsIndex(),
-        icon: Gauge,
-    },
-    {
-        title: 'Objetivos',
-        href: goalsIndex(),
-        icon: Target,
-    },
-    {
-        title: 'Deudas',
-        href: debtsIndex(),
-        icon: HandCoins,
-    },
+/** Herramientas para quien quiera más detalle; no estorban al resto. */
+export const moreNavItems: NavItem[] = [
+    { title: 'Mis cuentas', href: accountsIndex(), icon: Landmark },
+    { title: 'Categorías', href: categoriesIndex(), icon: Shapes },
+    { title: 'Estadísticas', href: statistics(), icon: ChartColumn },
+    { title: 'Presupuestos', href: budgetsIndex(), icon: Gauge },
+    { title: 'Metas de ahorro', href: goalsIndex(), icon: Target },
 ];
 
 const adminNavItems: NavItem[] = [
-    {
-        title: 'Usuarios',
-        href: usersIndex(),
-        icon: Users,
-    },
-    {
-        title: 'Auditoría',
-        href: auditIndex(),
-        icon: ScrollText,
-    },
-    {
-        title: 'Identidad visual',
-        href: brandingEdit(),
-        icon: Palette,
-    },
-    {
-        title: 'Mascotas',
-        href: mascotsIndex(),
-        icon: PawPrint,
-    },
+    { title: 'Usuarios', href: usersIndex(), icon: Users },
+    { title: 'Auditoría', href: auditIndex(), icon: ScrollText },
+    { title: 'Identidad visual', href: brandingEdit(), icon: Palette },
+    { title: 'Mascotas', href: mascotsIndex(), icon: PawPrint },
 ];
 
 export function AppSidebar() {
@@ -128,12 +80,23 @@ export function AppSidebar() {
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            size="lg"
+                            tooltip="Apuntar"
+                            onClick={() => openQuick('menu')}
+                            className="mt-2 bg-primary font-medium text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                        >
+                            <Plus aria-hidden="true" />
+                            <span>Apuntar</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain label="Mis finanzas" items={mainNavItems} />
-                <NavMain label="Planificación" items={planningNavItems} />
+                <NavMain label="Mi dinero" items={mainNavItems} />
+                <NavMain label="Más" items={moreNavItems} />
                 {auth.can.administer && (
                     <NavMain label="Administración" items={adminNavItems} />
                 )}

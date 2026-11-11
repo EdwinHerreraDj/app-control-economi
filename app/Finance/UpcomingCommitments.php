@@ -66,8 +66,9 @@ class UpcomingCommitments
                 'kind' => 'expense',
                 'date' => $debt->next_due_on?->toDateString(),
                 'overdue' => $debt->next_due_on?->lessThan($today) ?? false,
-                'concept' => "Cuota · {$debt->creditor}",
-                'amount' => $debt->installment !== null ? Money::toDecimal($debt->installment, $debt->currency) : null,
+                'concept' => "Cuota · {$debt->concept}",
+                // La última cuota nunca supera lo que falta por pagar.
+                'amount' => $debt->installment !== null ? Money::toDecimal(min($debt->installment, $debt->outstanding()), $debt->currency) : null,
                 'account' => null,
                 'category' => null,
                 'recurring' => true,

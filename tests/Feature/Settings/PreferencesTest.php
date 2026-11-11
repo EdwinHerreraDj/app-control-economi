@@ -54,7 +54,8 @@ test('completing the setup saves the preferences', function () use ($valid) {
 
     $this->actingAs($user)
         ->post(route('onboarding.store'), $valid)
-        ->assertRedirect(route('dashboard'));
+        // Siguiente paso: las cuatro preguntas sobre su dinero.
+        ->assertRedirect(route('setup.show'));
 
     $user->refresh();
 

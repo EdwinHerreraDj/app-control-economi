@@ -27,7 +27,14 @@ import Heading from '@/components/heading';
 import { Pagination } from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,6 +46,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useFormat } from '@/hooks/use-format';
+import { quickAction } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { index as debtsIndex } from '@/routes/debts';
 import { index as transactionsIndex } from '@/routes/transactions';
@@ -61,7 +69,11 @@ type Props = {
     today: string;
 };
 
-type DialogState = FormMode | { type: 'void'; movement: Movement } | null;
+type DialogState =
+    | FormMode
+    | { type: 'void'; movement: Movement }
+    | { type: 'delete'; movement: Movement }
+    | null;
 
 function visit(filters: Partial<Filters>) {
     const query = Object.fromEntries(
@@ -312,7 +324,10 @@ export default function TransactionsIndex({
                                             onEdit={() => edit(movement)}
                                             onVoid={() =>
                                                 setDialog({
-                                                    type: 'void',
+                                                    // Las transferencias se anulan; el resto se borra.
+                                                    type: movement.transfer
+                                                        ? 'void'
+                                                        : 'delete',
                                                     movement,
                                                 })
                                             }
@@ -332,6 +347,38 @@ export default function TransactionsIndex({
                 onOpenChange={(open) => !open && setDialog(null)}
             >
                 <DialogContent>
+                    {dialog?.type === 'delete' && (
+                        <>
+                            <DialogTitle>
+                                ¿Borrar «{dialog.movement.concept}»?
+                            </DialogTitle>
+                            <DialogDescription>
+                                Desaparecerá de tus movimientos y tus cuentas se
+                                recalcularán al momento.
+                            </DialogDescription>
+                            <DialogFooter className="gap-2">
+                                <DialogClose asChild>
+                                    <Button variant="secondary">
+                                        Cancelar
+                                    </Button>
+                                </DialogClose>
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => {
+                                        quickAction(
+                                            TransactionController.destroy.url(
+                                                dialog.movement.id,
+                                            ),
+                                            'delete',
+                                        );
+                                        setDialog(null);
+                                    }}
+                                >
+                                    Borrar
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
                     {dialog?.type === 'void' && (
                         <VoidForm
                             movement={dialog.movement}
@@ -720,7 +767,7 @@ function MovementRow({
                             onSelect={onVoid}
                         >
                             <Ban aria-hidden="true" />
-                            Anular
+                            {transfer ? 'Anular' : 'Borrar'}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

@@ -12,13 +12,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Dinero que el usuario debe (préstamos, créditos, aplazamientos...).
  *
  * El capital pendiente no se guarda: se calcula restando al capital inicial
- * el capital devuelto en los pagos no anulados.
+ * lo pagado antes de usar la app y el capital devuelto en los pagos no
+ * anulados. Nunca es negativo.
  *
  * @property int $id
- * @property string $creditor
+ * @property string|null $creditor
  * @property string $concept
  * @property string $currency
  * @property int $principal
+ * @property int $paid_before
  * @property CarbonImmutable $started_on
  * @property int|null $installment
  * @property Frequency|null $frequency
@@ -37,6 +39,7 @@ class Debt extends Model
     {
         return [
             'principal' => 'integer',
+            'paid_before' => 'integer',
             'installment' => 'integer',
             'frequency' => Frequency::class,
             'started_on' => 'immutable_date',
@@ -72,7 +75,19 @@ class Debt extends Model
 
     public function outstanding(): int
     {
-        return max(0, $this->principal - $this->repaidPrincipal());
+        return max(0, $this->principal - $this->paid_before - $this->repaidPrincipal());
+    }
+
+    /** Todo lo pagado: antes de usar la app y con pagos registrados. */
+    public function paidTotal(): int
+    {
+        return min($this->principal, $this->paid_before + $this->repaidPrincipal());
+    }
+
+    /** Nombre para mostrar: «Portátil» o «Préstamo · Banco». */
+    public function label(): string
+    {
+        return $this->concept;
     }
 
     public function isSettled(): bool

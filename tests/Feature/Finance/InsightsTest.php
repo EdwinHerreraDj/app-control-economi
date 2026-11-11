@@ -39,18 +39,21 @@ function forecast(int $days = 30): ?array
     return app(LiquidityForecast::class)->forUser(test()->user->refresh(), $days);
 }
 
-test('without accounts there is no forecast and the dashboard says so', function () {
+test('without accounts there is no forecast and the home page invites to start', function () {
     $user = User::factory()->create();
+    $insights = app(FinancialInsights::class);
 
-    expect(app(LiquidityForecast::class)->forUser($user))->toBeNull();
+    expect(app(LiquidityForecast::class)->forUser($user))->toBeNull()
+        ->and($insights->headline($user, null, $insights->dataQuality($user))['tone'])->toBe('unknown')
+        ->and($insights->savingsCapacity($user)['amount'])->toBeNull();
 
     $this->actingAs($user)
         ->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')
-            ->where('headline.tone', 'unknown')
-            ->where('forecast', null)
-            ->where('savings.amount', null));
+            ->where('needsSetup', true)
+            ->where('overview.available', '0.00')
+            ->where('overview.accounts', []));
 });
 
 test('the forecast adds planned income, subtracts planned payments and finds the lowest point', function () {
@@ -108,13 +111,13 @@ test('debt installments are subtracted unless the same payment is already planne
 test('the shortfall message is exact and calm', function () {
     plan('expense', 108500, '2026-11-20');
 
-    $this->actingAs($this->user)
-        ->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page
-            ->where('headline.tone', 'support')
-            ->where('headline.text', fn (string $text) => str_contains($text, 'se prevé que falten 85,00')
-                && str_contains($text, '20 de noviembre')
-                && str_contains($text, 'Puedes revisar los próximos vencimientos')));
+    $insights = app(FinancialInsights::class);
+    $headline = $insights->headline($this->user, forecast(), $insights->dataQuality($this->user));
+
+    expect($headline['tone'])->toBe('support')
+        ->and($headline['text'])->toContain('se prevé que falten 85,00')
+        ->toContain('20 de noviembre')
+        ->toContain('Puedes revisar los próximos vencimientos');
 });
 
 test('having more income than expenses alone does not mean there is margin', function () {

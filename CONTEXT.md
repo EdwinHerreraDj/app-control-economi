@@ -6,7 +6,7 @@ Construir una aplicación web para gestionar las cuentas personales: ingresos, g
 
 Cada usuario tendrá un espacio privado con todas las funcionalidades financieras, como si dispusiera de su propia copia de la aplicación. Un superusuario gestionará los usuarios, la identidad visual global y el catálogo de mascotas.
 
-Este documento consolida lo acordado en la conversación. En esta etapa solo se crea documentación: no se instala Laravel ni se implementa la aplicación. Las decisiones técnicas propuestas podrán ajustarse durante el desarrollo sin contradecir los requisitos del usuario.
+Las nueve fases de la sección 16 están implementadas. Después se aplicó un rediseño «sencillo» (sección 6) para que cualquier persona, sin conocimientos financieros ni tecnológicos, pueda usar la aplicación sin tutoriales: funciona como una conversación cotidiana sobre el dinero, no como un programa de contabilidad. Las decisiones técnicas podrán ajustarse sin contradecir los requisitos del usuario.
 
 ## 2. Tecnologías y arquitectura
 
@@ -90,17 +90,47 @@ El selector permanecerá en la configuración del usuario y explicará estas con
 
 ## 6. Módulos financieros
 
-### Panel principal
+### Experiencia sencilla y navegación
 
-Resumen del saldo actual, ingresos y gastos del período, pagos de deuda, próximos vencimientos, evolución, saldo proyectado y capacidad estimada de ahorro. Incluirá acciones rápidas y la mascota opcional.
+La interfaz usa expresiones naturales, cercanas y adultas, comprensibles en España y Latinoamérica: «Me entró dinero», «Gasté dinero», «¿Cuánto cobras?», «¿Qué pagas todos los meses?», «¿Debes dinero?», «¿Cuánto te falta?», «Ya lo pagué». No debe parecer un ERP, un banco ni una aplicación contable.
 
-Se distinguirán claramente datos confirmados, previstos y pendientes de sincronizar.
+Navegación principal de cuatro apartados (Inicio, Movimientos, Mis pagos y Mis meses) y un botón central «+» para apuntar. En móvil, barra inferior con el botón en el centro; en escritorio, barra lateral con el botón «Apuntar». Las herramientas avanzadas (cuentas, categorías, estadísticas, presupuestos y metas de ahorro) siguen disponibles en «Más», sin estorbar. En móvil los formularios se abren como un panel desde abajo, con los botones siempre visibles y sin diálogos encadenados.
+
+### Primeros pasos
+
+Tras elegir moneda y formato, un asistente hace cuatro preguntas, cada una omitible y completable después: ¿cuánto dinero tienes ahora? (banco y, opcionalmente, efectivo y ahorros aparte; es saldo inicial, no un ingreso), ¿cuánto cobras normalmente? (fijo, variable o sin ingresos fijos; frecuencia y día), ¿qué cosas pagas habitualmente? (alquiler, luz, internet…, con importe fijo o variable y día) y ¿tienes alguna deuda o compra a cuotas? (qué es, total, cuota, frecuencia, cuotas ya pagadas y próxima fecha). Termina con un resumen de la situación. A quien ya tiene cuentas no se le vuelve a pedir.
+
+### Inicio («Mi dinero»)
+
+Responde a cinco preguntas: cuánto tengo para gastar (y, aparte, cuánto tengo ahorrado), cuánto me ha entrado y cuánto he gastado este mes, qué me toca pagar pronto (con «Ya lo pagué» y «Ya lo cobré») y cuánto debo todavía. Importes grandes, fechas claras y explicaciones breves, sin gráficos innecesarios.
+
+Se separan siempre el dinero disponible, lo que se espera recibir, los pagos pendientes, las deudas y lo que podría quedar a final de mes. Esa última cifra es una estimación etiquetada como tal: un cobro o pago previsto nunca se suma ni se resta del dinero disponible hasta confirmarlo. Se distinguen también los datos pendientes de sincronizar.
+
+### Apuntar en segundos
+
+«Gasté dinero» y «Me entró dinero» piden solo cuánto, en qué o de dónde, y cuándo (hoy por defecto). La categoría se sugiere a partir del texto y del historial de la persona, y siempre se puede cambiar. En los gastos se puede indicar opcionalmente si fue algo necesario, un gusto, un pago habitual u otro. Si lo apuntado coincide con un cobro o pago pendiente, se ofrece confirmar ese en lugar de crear otro, para no duplicarlo. Un gasto común debe poder apuntarse en menos de 15 segundos.
+
+«Mis ahorros» mueve dinero entre la cuenta de ahorro y las demás: es una transferencia, no un gasto.
+
+### Mis pagos
+
+Tres pestañas: lo que toca pagar y cobrar en los próximos 30 días (incluido lo atrasado), los pagos y cobros de cada mes, y «Lo que debo». «Ya lo pagué» registra el importe, la fecha y la cuenta reales (los pagos variables pueden costar distinto cada vez) y la siguiente fecha aparece sola. «Este no» omite un pago concreto sin que vuelva a generarse.
+
+### Mis meses
+
+Para cada mes: lo recibido, lo gastado (pagos habituales, gustos y resto), las cuotas de deudas, el resultado y los movimientos agrupados por día. Cada movimiento cuenta en el mes de su fecha real aunque se apunte después, y una sola vez.
+
+### Avisos
+
+Como mucho tres a la vez, con datos reales y sin juzgar los hábitos: «Mañana te toca pagar el alquiler», «Tienes un pago pendiente desde ayer», «Te quedan 3 cuotas del portátil», «Este mes llevas 75 € en restaurantes», «Este mes te han entrado 120 € más de lo habitual».
 
 ### Cuentas
 
 Gestión de cuentas bancarias, efectivo y otros depósitos: nombre, tipo, moneda, saldo inicial y estado activo o archivado.
 
 Las transferencias entre cuentas propias afectarán al saldo de ambas, pero no se considerarán ingresos ni gastos. No se archivarán cuentas de forma que se pierda el historial.
+
+Una cuenta de ahorro (donde la persona va guardando dinero) se muestra aparte: no cuenta como dinero para gastar, pero sí como dinero suyo.
 
 ### Ingresos
 
@@ -125,6 +155,8 @@ Los pagos distinguirán capital, intereses y comisiones. Se admitirán pagos par
 Recibir un préstamo aumentará saldo y deuda, sin contarse como ingreso ordinario. Devolver capital reducirá saldo y deuda; los intereses y comisiones serán gastos. Los pagos no se duplicarán por aparecer en el historial de deuda y en una cuenta.
 
 Los calendarios de amortización avanzados y productos con condiciones complejas se definirán aparte; no se inventarán intereses que el usuario no haya registrado o configurado.
+
+Al apuntar una deuda puede indicarse lo ya pagado antes de usar la aplicación: reduce lo pendiente sin mover dinero. Se admiten deudas sin cuotas (un préstamo entre amigos). «Lo que debo» muestra lo que se debía, lo pagado, lo que falta, la próxima cuota y la fecha estimada de fin; «Pagué una cuota» admite pagos parciales, anticipados y con intereses opcionales, y el pendiente nunca es negativo.
 
 ### Presupuestos y objetivos de ahorro
 
@@ -321,6 +353,9 @@ No habrá credenciales predeterminadas ni contraseñas como argumentos visibles 
 | mascot_messages | Plantillas y condiciones de mensajes |
 | audit_logs | Acciones sensibles y administrativas |
 | sync_operations | Idempotencia y seguimiento de sincronización |
+| invitation_tokens | Enlaces de invitación, separados de la recuperación de contraseña |
+
+Rediseño sencillo (migración aditiva): lo ya pagado de una deuda antes de usar la aplicación (`debts.paid_before`), a quién se debe pasa a ser opcional, clasificación opcional del gasto (`transactions.spending_type`: necesario, gusto, habitual u otro) y fecha de la primera configuración (`users.setup_completed_at`).
 
 Se añadirán las tablas oficiales necesarias para sesiones, recuperación de contraseña y colas. Las preferencias de mascota podrán residir en usuarios o en una entidad propia según su complejidad.
 
@@ -353,6 +388,7 @@ Se configurarán copias de seguridad de base de datos y archivos, con prueba de 
 7. Crear configuración de identidad y catálogo de mascotas; integrar una mascota inicial.
 8. Completar instalación PWA, modo offline, sincronización y actualización.
 9. Validar seguridad, cálculos, accesibilidad y despliegue; documentar operación.
+10. Rediseño sencillo: primeros pasos, Inicio, Mis pagos, Mis meses, apuntes rápidos y navegación en cuatro apartados.
 
 El diseño de identificadores, conflictos, privacidad local y sincronización se realizará desde la base del proyecto, aunque la fase offline se complete después.
 
@@ -378,6 +414,8 @@ El diseño de identificadores, conflictos, privacidad local y sincronización se
 - Los recursos faltantes tienen alternativa estática y funcionan sin conexión tras descargarse.
 - Se prueban los flujos críticos con pruebas de integración y navegador según corresponda.
 - Se verifica restauración de una copia de seguridad.
+- Una persona que solo quiere apuntar que cobró 1.400 €, pagó 450 € de alquiler, se tomó una cerveza de 4 € y debe 300 € de un portátil puede hacerlo sin explicaciones y entiende cuánto dinero tiene, cuánto ha gastado y qué pagos le quedan.
+- Un gasto común se apunta en menos de 15 segundos.
 
 ## 18. Límites iniciales y decisiones pendientes
 

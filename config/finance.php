@@ -71,4 +71,39 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sugerencia automática de categoría
+    |--------------------------------------------------------------------------
+    |
+    | Palabras que, si aparecen en el concepto («Me tomé una cerveza»), sugieren
+    | una de las categorías por defecto. La sugerencia siempre se puede cambiar
+    | y, con el uso, manda lo que la persona eligió antes para ese concepto.
+    |
+    */
+
+    'category_keywords' => [
+        'expense' => [
+            'Vivienda' => ['alquiler', 'hipoteca', 'comunidad', 'piso', 'casa'],
+            'Suministros' => ['luz', 'agua', 'gas', 'electricidad', 'calefacción', 'basura'],
+            'Alimentación' => ['super', 'supermercado', 'mercado', 'compra', 'mercadona', 'carrefour', 'lidl', 'aldi', 'dia', 'fruta', 'pan', 'carnicería'],
+            'Restaurantes' => ['bar', 'cerveza', 'caña', 'café', 'cafe', 'comer fuera', 'comida fuera', 'restaurante', 'cena', 'almuerzo', 'menú', 'tapas', 'pizza', 'hamburguesa', 'copa', 'birra'],
+            'Transporte' => ['gasolina', 'gasoil', 'diésel', 'combustible', 'bus', 'autobús', 'metro', 'tren', 'taxi', 'uber', 'cabify', 'parking', 'aparcamiento', 'peaje', 'abono transporte'],
+            'Salud' => ['farmacia', 'médico', 'medico', 'dentista', 'crema', 'medicina', 'óptica', 'fisio'],
+            'Educación' => ['curso', 'libro', 'libros', 'colegio', 'matrícula', 'academia', 'clases'],
+            'Ocio' => ['cine', 'concierto', 'netflix', 'spotify', 'hbo', 'disney', 'juego', 'videojuego', 'gimnasio', 'gym', 'entradas', 'viaje', 'suscripción'],
+            'Ropa' => ['ropa', 'zapatos', 'zapatillas', 'camiseta', 'pantalón', 'vestido', 'chaqueta'],
+            'Comunicaciones' => ['internet', 'teléfono', 'telefono', 'móvil', 'movil', 'fibra', 'datos'],
+            'Seguros' => ['seguro'],
+            'Impuestos y tasas' => ['impuesto', 'ibi', 'multa', 'tasa', 'hacienda'],
+            'Regalos y donaciones' => ['regalo', 'cumpleaños', 'donación', 'boda'],
+        ],
+        'income' => [
+            'Nómina' => ['sueldo', 'nómina', 'nomina', 'salario', 'paga'],
+            'Trabajo por cuenta propia' => ['factura', 'cliente', 'proyecto', 'encargo', 'freelance'],
+            'Ventas' => ['vendí', 'vendi', 'venta', 'wallapop', 'vinted'],
+            'Reembolsos y devoluciones' => ['devolvió', 'devolvio', 'me devolvieron', 'reembolso', 'devolución'],
+        ],
+    ],
+
 ];
