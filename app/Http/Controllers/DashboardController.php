@@ -6,6 +6,7 @@ use App\Finance\BudgetReport;
 use App\Finance\FinancialInsights;
 use App\Finance\LiquidityForecast;
 use App\Finance\UpcomingCommitments;
+use App\Mascots\MascotCompanion;
 use App\Models\DebtPayment;
 use App\Models\SavingsGoal;
 use App\Models\User;
@@ -22,6 +23,7 @@ class DashboardController extends Controller
         LiquidityForecast $forecast,
         UpcomingCommitments $upcoming,
         BudgetReport $budgets,
+        MascotCompanion $companion,
     ): Response {
         /** @var User $user */
         $user = $request->user();
@@ -60,8 +62,12 @@ class DashboardController extends Controller
                     : 0,
             ]);
 
+        $headline = $insights->headline($user, $projection, $quality);
+
         return Inertia::render('dashboard', [
-            'headline' => $insights->headline($user, $projection, $quality),
+            'headline' => $headline,
+            // La mascota usa los mismos cálculos que el panel.
+            'mascot' => $companion->forDashboard($user, $headline, $projection, $request->session()),
             'balance' => $projection['real'] ?? Money::toDecimal(0, $currency),
             'month' => [
                 'income' => $current['income'],

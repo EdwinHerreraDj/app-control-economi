@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Mascot;
 use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,6 +28,14 @@ class AuditLogController extends Controller
         'user.created_with_password' => 'Usuario dado de alta con contraseña temporal',
         'user.temporary_password_set' => 'Contraseña temporal puesta por el administrador',
         'user.password_chosen' => 'Contraseña temporal sustituida por la propia',
+        'brand.updated' => 'Identidad visual modificada',
+        'brand.asset_uploaded' => 'Recurso de identidad subido',
+        'brand.asset_reset' => 'Recurso de identidad restaurado',
+        'mascot.created' => 'Mascota creada',
+        'mascot.asset_uploaded' => 'Imagen de mascota subida',
+        'mascot.published' => 'Mascota publicada',
+        'mascot.archived' => 'Mascota archivada',
+        'mascot.made_default' => 'Mascota predeterminada cambiada',
     ];
 
     public function index(): Response
@@ -40,7 +49,7 @@ class AuditLogController extends Controller
                 'action' => $log->action,
                 'description' => self::ACTIONS[$log->action] ?? $log->action,
                 'actor' => $log->actor->name ?? 'Sistema',
-                'subject' => $log->subject instanceof User ? $log->subject->name : null,
+                'subject' => $log->subject instanceof User || $log->subject instanceof Mascot ? $log->subject->name : null,
                 'properties' => $log->properties,
                 'ip_address' => $log->ip_address,
                 'created_at' => $log->created_at?->toIso8601String(),

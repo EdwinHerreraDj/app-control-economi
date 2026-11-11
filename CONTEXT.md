@@ -39,7 +39,7 @@ Se impedirá eliminar o suspender al último superusuario activo.
 
 ### Usuario
 
-Dispondrá de todos los módulos financieros y podrá gestionar exclusivamente sus propios datos, preferencias y mascota. Su espacio inicial tendrá categorías orientativas, pero ningún movimiento financiero ficticio.
+Dispondrá de todos los módulos financieros y podrá gestionar exclusivamente sus propios datos y preferencias (de la mascota, solo su visibilidad y animaciones). Su espacio inicial tendrá categorías orientativas, pero ningún movimiento financiero ficticio.
 
 ### Aislamiento
 
@@ -75,7 +75,7 @@ Preferencias previstas:
 - Formato de importes y separadores decimales.
 - Zona horaria e idioma; la interfaz inicial se desarrollará en español.
 - Tema claro, oscuro o del sistema.
-- Mascota seleccionada, nombre personalizado, visibilidad y animaciones.
+- Visibilidad y animaciones de la mascota (la mascota, su nombre y sus mensajes los decide el superusuario).
 - Preferencia de acceso persistente y gestión de dispositivos.
 
 La primera configuración solicitará la moneda, sin asumirla por el idioma o la ubicación.
@@ -179,7 +179,7 @@ Objetivo de accesibilidad: WCAG 2.2 AA, incluyendo teclado, foco visible, contra
 
 ### Propósito
 
-Cada usuario podrá seleccionar una mascota, con inspiración en un Tamagotchi, que acompañe la consulta de las cuentas y represente su evolución mediante gestos y mensajes.
+Cada usuario contará con una mascota, elegida por el superusuario y con inspiración en un Tamagotchi, que acompañe la consulta de las cuentas y represente su evolución mediante gestos y mensajes.
 
 No será un mecanismo de castigo: no enfermará, morirá ni sufrirá por tener deudas, déficit o por no entrar en la app. No requerirá alimentación ni tareas de cuidado obligatorias.
 
@@ -187,7 +187,7 @@ No se necesita un motor de videojuegos. React mostrará recursos gráficos segú
 
 ### Preferencias del usuario
 
-Elegir o cambiar mascota, asignarle un nombre, minimizarla u ocultarla, activar o desactivar mensajes y reducir o desactivar animaciones. No habrá sonidos automáticos ni interrupciones repetitivas.
+La mascota, su nombre y sus mensajes los decide únicamente el superusuario: todas las personas ven la mascota predeterminada. Cada usuario solo puede ajustar lo relativo a su accesibilidad y comodidad: mostrarla, minimizarla u ocultarla, y reducir o desactivar sus animaciones. No habrá sonidos automáticos ni interrupciones repetitivas.
 
 Se podrán celebrar hábitos como revisar el presupuesto o alcanzar una meta, sin comparar personas por su riqueza.
 
@@ -229,7 +229,7 @@ Apartado Configuración → Mascotas con:
 - Indicador de recursos faltantes y dimensiones recomendadas.
 - Mensajes por situación mediante plantillas y variables permitidas.
 
-Archivar impedirá nuevas selecciones, pero conservará la mascota de quienes ya la utilizan. Para retirarla completamente se asignará una alternativa conservando el nombre personal.
+La mascota predeterminada es la que ven todas las personas; para cambiarla se marca otra publicada como predeterminada. Archivar retira una mascota del catálogo conservando sus recursos; la predeterminada no se puede archivar.
 
 Los recursos subidos se guardarán en almacenamiento persistente de la aplicación o almacenamiento de objetos, con referencias en MySQL y versiones para la caché. Git gestionará el código y, en su caso, recursos iniciales incluidos en el proyecto; las subidas administrativas no necesitarán commits ni despliegues.
 
@@ -373,7 +373,7 @@ El diseño de identificadores, conflictos, privacidad local y sincronización se
 - Cerrar sesión evita exponer los datos locales a otra cuenta.
 - El superusuario puede subir identidad e iconos con validación, ayuda de medidas y vista previa.
 - Puede publicar una mascota estática y añadir animaciones sin cambios de código.
-- El usuario puede elegir, cambiar, ocultar o reducir la animación de su mascota.
+- El superusuario decide la mascota, su nombre y sus mensajes; el usuario puede ocultarla, minimizarla o reducir su animación.
 - Los estados de la mascota son coherentes con el panel y nunca castigan la dificultad económica.
 - Los recursos faltantes tienen alternativa estática y funcionan sin conexión tras descargarse.
 - Se prueban los flujos críticos con pruebas de integración y navegador según corresponda.

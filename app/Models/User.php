@@ -32,6 +32,8 @@ use Illuminate\Notifications\Notifiable;
  * @property string $locale Idioma de la interfaz.
  * @property CarbonImmutable|null $onboarded_at
  * @property bool $must_change_password Entró con una contraseña temporal del superusuario.
+ * @property string $mascot_visibility shown | minimized | hidden
+ * @property string $mascot_motion full | reduced | none
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -39,6 +41,18 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Valores por defecto (iguales a los de la base de datos) para que un
+     * usuario recién creado los tenga sin volver a leerlo.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'mascot_visibility' => 'shown',
+        'mascot_motion' => 'full',
+        'must_change_password' => false,
+    ];
 
     /**
      * @return array<string, string>

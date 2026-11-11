@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Branding\Brand;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,9 +36,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $brand = app(Brand::class)->resolved();
+
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
+            'name' => $brand['name'],
+            // Identidad visual configurable por el superusuario.
+            'brand' => [
+                'name' => $brand['name'],
+                'short_name' => $brand['short_name'],
+                'logo' => $brand['custom']['logo'] ? $brand['urls']['logo'] : null,
+                'logo_dark' => $brand['custom']['logo_dark'] ? $brand['urls']['logo_dark'] : null,
+                'logo_square' => $brand['custom']['logo_square'] ? $brand['urls']['logo_square'] : null,
+            ],
             // Formato de importes y fechas del usuario (o por defecto, sin sesión).
             'preferences' => $request->user()?->preferences() ?? [
                 'currency' => null,

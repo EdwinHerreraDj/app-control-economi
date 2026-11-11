@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\MascotController;
 use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -29,4 +30,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::get('settings/mascot', [MascotController::class, 'edit'])->name('mascot.edit');
+    Route::put('settings/mascot', [MascotController::class, 'update'])->name('mascot.update');
+    Route::patch('settings/mascot/visibility', [MascotController::class, 'visibility'])->name('mascot.visibility');
 });

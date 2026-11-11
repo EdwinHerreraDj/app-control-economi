@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BrandingController;
+use App\Http\Controllers\Admin\MascotController as AdminMascotController;
+use App\Http\Controllers\Admin\MascotMessageController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ChoosePasswordController;
 use App\Http\Controllers\Auth\InvitationController;
@@ -14,11 +17,15 @@ use App\Http\Controllers\Finance\SavingsGoalController;
 use App\Http\Controllers\Finance\StatisticsController;
 use App\Http\Controllers\Finance\TransactionController;
 use App\Http\Controllers\Finance\TransferController;
+use App\Http\Controllers\ManifestController;
 use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
 // La aplicación es privada: la raíz lleva al panel (o al login si no hay sesión).
 Route::redirect('/', '/dashboard')->name('home');
+
+// Manifiesto de la PWA (público: el navegador lo pide antes de iniciar sesión).
+Route::get('manifest.webmanifest', ManifestController::class)->name('manifest');
 
 Route::middleware('guest')->group(function () {
     Route::get('invitation/{token}', [InvitationController::class, 'show'])->name('invitation.show');
@@ -114,6 +121,25 @@ Route::middleware(['auth', 'verified', 'onboarded', 'can:administer'])
             ->name('users.password-reset');
 
         Route::get('audit', [AuditLogController::class, 'index'])->name('audit.index');
+
+        Route::get('branding', [BrandingController::class, 'edit'])->name('branding.edit');
+        Route::put('branding', [BrandingController::class, 'update'])->name('branding.update');
+        Route::post('branding/assets/{asset}', [BrandingController::class, 'upload'])->name('branding.upload');
+        Route::delete('branding/assets/{asset}', [BrandingController::class, 'reset'])->name('branding.reset');
+
+        Route::get('mascots', [AdminMascotController::class, 'index'])->name('mascots.index');
+        Route::post('mascots', [AdminMascotController::class, 'store'])->name('mascots.store');
+        Route::get('mascots/{mascot}', [AdminMascotController::class, 'show'])->name('mascots.show');
+        Route::put('mascots/{mascot}', [AdminMascotController::class, 'update'])->name('mascots.update');
+        Route::post('mascots/{mascot}/assets/{state}', [AdminMascotController::class, 'uploadAsset'])->name('mascots.assets.upload');
+        Route::delete('mascots/{mascot}/assets/{state}', [AdminMascotController::class, 'removeAsset'])->name('mascots.assets.remove');
+        Route::post('mascots/{mascot}/publish', [AdminMascotController::class, 'publish'])->name('mascots.publish');
+        Route::post('mascots/{mascot}/archive', [AdminMascotController::class, 'archive'])->name('mascots.archive');
+        Route::post('mascots/{mascot}/default', [AdminMascotController::class, 'makeDefault'])->name('mascots.default');
+
+        Route::post('mascot-messages', [MascotMessageController::class, 'store'])->name('mascot-messages.store');
+        Route::put('mascot-messages/{message}', [MascotMessageController::class, 'update'])->name('mascot-messages.update');
+        Route::delete('mascot-messages/{message}', [MascotMessageController::class, 'destroy'])->name('mascot-messages.destroy');
     });
 
 require __DIR__.'/settings.php';

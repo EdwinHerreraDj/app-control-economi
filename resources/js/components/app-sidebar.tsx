@@ -8,6 +8,8 @@ import {
     Target,
     Landmark,
     LayoutGrid,
+    Palette,
+    PawPrint,
     ScrollText,
     Shapes,
     Users,
@@ -26,6 +28,8 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard, statistics } from '@/routes';
 import { index as auditIndex } from '@/routes/admin/audit';
+import { edit as brandingEdit } from '@/routes/admin/branding';
+import { index as mascotsIndex } from '@/routes/admin/mascots';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as accountsIndex } from '@/routes/accounts';
 import { index as budgetsIndex } from '@/routes/budgets';
@@ -97,6 +101,16 @@ const adminNavItems: NavItem[] = [
         title: 'Auditoría',
         href: auditIndex(),
         icon: ScrollText,
+    },
+    {
+        title: 'Identidad visual',
+        href: brandingEdit(),
+        icon: Palette,
+    },
+    {
+        title: 'Mascotas',
+        href: mascotsIndex(),
+        icon: PawPrint,
     },
 ];
 

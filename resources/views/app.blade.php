@@ -30,19 +30,41 @@
             }
         </style>
 
-        <meta name="theme-color" content="#0f766e">
+        @php($brand = app(\App\Branding\Brand::class)->resolved())
+
+        @if ($brand['primary_color'])
+            {{-- Color principal de la marca (tema claro). Se valida su contraste al guardarlo. --}}
+            <style>
+                :root:not(.dark) {
+                    --primary: {{ $brand['primary_color'] }};
+                    --sidebar-primary: {{ $brand['primary_color'] }};
+                    --ring: {{ $brand['primary_color'] }};
+                }
+            </style>
+        @endif
+
+        <meta name="application-name" content="{{ $brand['name'] }}">
+        <meta name="apple-mobile-web-app-title" content="{{ $brand['short_name'] }}">
+        <meta name="theme-color" content="{{ $brand['theme_color'] }}">
         <meta name="color-scheme" content="light dark">
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="manifest" href="{{ route('manifest') }}">
+        @if ($brand['urls']['favicon_ico'])
+            <link rel="icon" href="{{ $brand['urls']['favicon_ico'] }}" sizes="any">
+        @endif
+        @if ($brand['urls']['favicon_svg'])
+            <link rel="icon" href="{{ $brand['urls']['favicon_svg'] }}" type="image/svg+xml">
+        @endif
+        @if ($brand['urls']['apple_touch'])
+            <link rel="apple-touch-icon" href="{{ $brand['urls']['apple_touch'] }}">
+        @endif
 
         @fonts
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ config('app.name') }}</title>
+            <title>{{ $brand['name'] }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

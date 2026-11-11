@@ -18,6 +18,8 @@ import { monthLabel } from '@/components/charts/chart-utils';
 import { ColumnChart } from '@/components/charts/column-chart';
 import { Explanation } from '@/components/charts/explanation';
 import { CategoryIcon } from '@/components/finance/category-badge';
+import { MascotCompanion } from '@/components/mascot/mascot-companion';
+import type { MascotCompanionData } from '@/types/branding';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { useFormat } from '@/hooks/use-format';
@@ -47,6 +49,7 @@ type Forecast = {
 
 type Props = {
     headline: { tone: Tone; title: string; text: string };
+    mascot: MascotCompanionData | null;
     balance: string;
     month: { income: string; expense: string; net: string; debt_paid: string };
     forecast: Forecast | null;
@@ -105,6 +108,7 @@ const TONES: Record<Tone, { icon: LucideIcon; className: string }> = {
 export default function Dashboard(props: Props) {
     const {
         headline,
+        mascot,
         balance,
         month,
         forecast,
@@ -205,6 +209,8 @@ export default function Dashboard(props: Props) {
                             )}
                     </div>
                 </section>
+
+                {mascot && <MascotCompanion mascot={mascot} />}
 
                 <section
                     aria-label="Resumen"

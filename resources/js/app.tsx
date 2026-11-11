@@ -6,7 +6,13 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Economía Personal';
+// El nombre lo configura el superusuario; la plantilla lo publica en esta meta.
+const appName =
+    document
+        .querySelector('meta[name="application-name"]')
+        ?.getAttribute('content') ||
+    import.meta.env.VITE_APP_NAME ||
+    'Economía Personal';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

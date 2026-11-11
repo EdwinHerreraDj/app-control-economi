@@ -8,7 +8,7 @@ export default function AuthSimpleLayout({
     title,
     description,
 }: AuthLayoutProps) {
-    const { name } = usePage().props;
+    const { name, brand } = usePage().props;
 
     return (
         <main className="flex min-h-svh flex-col items-center justify-center bg-background px-4 py-10 sm:px-6">
@@ -19,12 +19,43 @@ export default function AuthSimpleLayout({
                             href={home()}
                             className="flex flex-col items-center gap-2 rounded-lg font-medium"
                         >
-                            <span className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                                <AppLogoIcon className="size-7 fill-current" />
-                            </span>
-                            <span className="text-sm font-semibold">
-                                {name}
-                            </span>
+                            {brand.logo ? (
+                                <>
+                                    <img
+                                        src={brand.logo}
+                                        alt={name}
+                                        className={
+                                            brand.logo_dark
+                                                ? 'h-12 w-auto max-w-60 object-contain dark:hidden'
+                                                : 'h-12 w-auto max-w-60 object-contain'
+                                        }
+                                    />
+                                    {brand.logo_dark && (
+                                        <img
+                                            src={brand.logo_dark}
+                                            alt={name}
+                                            className="hidden h-12 w-auto max-w-60 object-contain dark:block"
+                                        />
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <span className="flex size-12 items-center justify-center overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                                        {brand.logo_square ? (
+                                            <img
+                                                src={brand.logo_square}
+                                                alt=""
+                                                className="size-12 object-contain"
+                                            />
+                                        ) : (
+                                            <AppLogoIcon className="size-7 fill-current" />
+                                        )}
+                                    </span>
+                                    <span className="text-sm font-semibold">
+                                        {name}
+                                    </span>
+                                </>
+                            )}
                         </Link>
 
                         <div className="space-y-2 text-center">
