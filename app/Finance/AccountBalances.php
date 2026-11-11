@@ -40,7 +40,8 @@ class AccountBalances
      */
     private function movementTotals(int $userId, ?int $accountId = null): array
     {
-        $positive = [TransactionKind::Income->value, TransactionKind::TransferIn->value];
+        $positive = TransactionKind::positiveValues();
+        $placeholders = implode(', ', array_fill(0, count($positive), '?'));
 
         return DB::table('transactions')
             ->where('user_id', $userId)
@@ -49,7 +50,7 @@ class AccountBalances
             ->whereNull('voided_at')
             ->groupBy('account_id')
             ->selectRaw(
-                'account_id, SUM(CASE WHEN kind IN (?, ?) THEN amount ELSE -amount END) AS total',
+                "account_id, SUM(CASE WHEN kind IN ({$placeholders}) THEN amount ELSE -amount END) AS total",
                 $positive,
             )
             ->pluck('total', 'account_id')

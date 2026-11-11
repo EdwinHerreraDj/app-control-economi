@@ -235,6 +235,8 @@ class TransactionController extends Controller
             'concept' => $transaction->concept,
             'notes' => $transaction->notes,
             'voided' => $transaction->isVoided(),
+            // Movimientos de deudas: se gestionan desde el apartado Deudas.
+            'debt_managed' => $transaction->debt_id !== null,
             'void_reason' => $transaction->void_reason,
             'account' => ['id' => $transaction->account->id, 'name' => $transaction->account->name],
             'category' => $transaction->category ? [

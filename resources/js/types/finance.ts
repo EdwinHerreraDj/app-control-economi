@@ -2,7 +2,9 @@ export type MovementKind =
     | 'income'
     | 'expense'
     | 'transfer_in'
-    | 'transfer_out';
+    | 'transfer_out'
+    | 'debt_in'
+    | 'debt_out';
 
 export type Movement = {
     id: number;
@@ -16,6 +18,8 @@ export type Movement = {
     concept: string;
     notes: string | null;
     voided: boolean;
+    /** Movimiento de una deuda: se gestiona desde el apartado Deudas. */
+    debt_managed: boolean;
     void_reason: string | null;
     account: { id: number; name: string };
     category: { id: number; name: string; icon: string; color: string } | null;

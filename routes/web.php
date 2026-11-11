@@ -4,7 +4,11 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Finance\AccountController;
+use App\Http\Controllers\Finance\BudgetController;
 use App\Http\Controllers\Finance\CategoryController;
+use App\Http\Controllers\Finance\DebtController;
+use App\Http\Controllers\Finance\RecurringRuleController;
+use App\Http\Controllers\Finance\SavingsGoalController;
 use App\Http\Controllers\Finance\TransactionController;
 use App\Http\Controllers\Finance\TransferController;
 use App\Http\Controllers\OnboardingController;
@@ -52,6 +56,30 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::put('transfers/{transfer}', [TransferController::class, 'update'])->name('transfers.update');
     Route::post('transfers/{transfer}/confirm', [TransferController::class, 'confirm'])->name('transfers.confirm');
     Route::post('transfers/{transfer}/void', [TransferController::class, 'void'])->name('transfers.void');
+
+    Route::get('debts', [DebtController::class, 'index'])->name('debts.index');
+    Route::post('debts', [DebtController::class, 'store'])->name('debts.store');
+    Route::put('debts/{debt}', [DebtController::class, 'update'])->name('debts.update');
+    Route::post('debts/{debt}/payments', [DebtController::class, 'storePayment'])->name('debts.payments.store');
+    Route::post('debt-payments/{payment}/void', [DebtController::class, 'voidPayment'])->name('debts.payments.void');
+
+    Route::get('recurring', [RecurringRuleController::class, 'index'])->name('recurring.index');
+    Route::post('recurring', [RecurringRuleController::class, 'store'])->name('recurring.store');
+    Route::put('recurring/{rule}', [RecurringRuleController::class, 'update'])->name('recurring.update');
+    Route::post('recurring/{rule}/pause', [RecurringRuleController::class, 'pause'])->name('recurring.pause');
+    Route::post('recurring/{rule}/resume', [RecurringRuleController::class, 'resume'])->name('recurring.resume');
+    Route::delete('recurring/{rule}', [RecurringRuleController::class, 'destroy'])->name('recurring.destroy');
+
+    Route::get('budgets', [BudgetController::class, 'index'])->name('budgets.index');
+    Route::put('budgets/{category}', [BudgetController::class, 'upsert'])->name('budgets.upsert');
+    Route::delete('budgets/{category}', [BudgetController::class, 'destroy'])->name('budgets.destroy');
+
+    Route::get('goals', [SavingsGoalController::class, 'index'])->name('goals.index');
+    Route::post('goals', [SavingsGoalController::class, 'store'])->name('goals.store');
+    Route::put('goals/{goal}', [SavingsGoalController::class, 'update'])->name('goals.update');
+    Route::post('goals/{goal}/contributions', [SavingsGoalController::class, 'contribute'])->name('goals.contribute');
+    Route::post('goals/{goal}/archive', [SavingsGoalController::class, 'archive'])->name('goals.archive');
+    Route::post('goals/{goal}/restore', [SavingsGoalController::class, 'restore'])->name('goals.restore');
 });
 
 Route::middleware(['auth', 'verified', 'onboarded', 'can:administer'])

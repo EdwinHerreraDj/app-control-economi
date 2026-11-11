@@ -19,6 +19,10 @@ class FinancialFootprint
     {
         return $user->accounts()->exists()
             || $user->transactions()->exists()
-            || $user->transfers()->exists();
+            || $user->transfers()->exists()
+            || $user->debts()->exists()
+            || $user->recurringRules()->exists()
+            || $user->budgets()->exists()
+            || $user->savingsGoals()->exists();
     }
 }

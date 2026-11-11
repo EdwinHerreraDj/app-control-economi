@@ -1,7 +1,8 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     Ban,
+    HandCoins,
     CalendarClock,
     CircleCheck,
     ChevronLeft,
@@ -39,6 +40,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { useFormat } from '@/hooks/use-format';
 import { cn } from '@/lib/utils';
+import { index as debtsIndex } from '@/routes/debts';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { Paginated } from '@/types';
 import type {
@@ -154,7 +156,7 @@ export default function TransactionsIndex({
         filters.search;
 
     const edit = (movement: Movement) => {
-        if (movement.voided) {
+        if (movement.voided || movement.debt_managed) {
             return;
         }
 
@@ -552,12 +554,14 @@ function MovementRow({
     let srSign = '';
     if (
         movement.kind === 'income' ||
+        movement.kind === 'debt_in' ||
         (accountFilter && movement.kind === 'transfer_in')
     ) {
         sign = '+';
         srSign = 'Entrada de ';
     } else if (
         movement.kind === 'expense' ||
+        movement.kind === 'debt_out' ||
         (accountFilter && movement.kind === 'transfer_out')
     ) {
         sign = '−';
@@ -577,12 +581,16 @@ function MovementRow({
                 movement.voided && 'opacity-60',
             )}
         >
-            {transfer ? (
+            {transfer || !movement.category ? (
                 <span
                     className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground"
                     aria-hidden="true"
                 >
-                    <ArrowLeftRight className="size-4.5" />
+                    {transfer ? (
+                        <ArrowLeftRight className="size-4.5" />
+                    ) : (
+                        <HandCoins className="size-4.5" />
+                    )}
                 </span>
             ) : (
                 <CategoryIcon
@@ -594,7 +602,7 @@ function MovementRow({
             <button
                 type="button"
                 onClick={onEdit}
-                disabled={movement.voided}
+                disabled={movement.voided || movement.debt_managed}
                 className="min-w-0 flex-1 rounded-md text-left disabled:cursor-default"
             >
                 <p
@@ -608,7 +616,10 @@ function MovementRow({
                 <p className="truncate text-xs text-muted-foreground">
                     {transfer
                         ? `${transfer.from.name} → ${transfer.to.name}`
-                        : `${movement.category?.name ?? 'Sin categoría'} · ${movement.account.name}`}
+                        : movement.kind === 'debt_in' ||
+                            movement.kind === 'debt_out'
+                          ? `Deuda (no es ingreso ni gasto) · ${movement.account.name}`
+                          : `${movement.category?.name ?? 'Sin categoría'} · ${movement.account.name}`}
                 </p>
                 {movement.voided && movement.void_reason && (
                     <p className="truncate text-xs text-muted-foreground">
@@ -644,7 +655,20 @@ function MovementRow({
                 )}
             </div>
 
-            {!movement.voided && (
+            {movement.debt_managed && !movement.voided && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    aria-label="Gestionar en Deudas"
+                >
+                    <Link href={debtsIndex()}>
+                        <HandCoins aria-hidden="true" />
+                    </Link>
+                </Button>
+            )}
+
+            {!movement.voided && !movement.debt_managed && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button

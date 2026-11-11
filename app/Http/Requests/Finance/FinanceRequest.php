@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Finance;
 
 use App\Models\User;
+use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
@@ -22,6 +23,26 @@ abstract class FinanceRequest extends FormRequest
     protected function currency(): string
     {
         return (string) $this->owner()->currency;
+    }
+
+    /**
+     * Importe validado en unidades menores (null si el campo viene vacío).
+     */
+    public function minor(string $field, bool $allowNegative = false): ?int
+    {
+        if (! $this->filled($field)) {
+            return null;
+        }
+
+        return Money::toMinor($this->string($field)->toString(), $this->currency(), $allowNegative);
+    }
+
+    /**
+     * Texto opcional ya recortado, o null si viene vacío.
+     */
+    public function optionalString(string $field): ?string
+    {
+        return $this->filled($field) ? $this->string($field)->toString() : null;
     }
 
     protected function ownedBy(string $table): Exists

@@ -13,6 +13,7 @@ type Props = {
     error?: string;
     allowNegative?: boolean;
     hint?: string;
+    required?: boolean;
 };
 
 /**
@@ -28,6 +29,7 @@ export default function AmountInput({
     error,
     allowNegative = false,
     hint,
+    required = true,
 }: Props) {
     const format = useFormat();
     const locale = format.preferences.number_locale;
@@ -48,7 +50,7 @@ export default function AmountInput({
                 name={name}
                 inputMode="decimal"
                 autoComplete="off"
-                required
+                required={required}
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 placeholder={amountForInput('0.00', locale)}

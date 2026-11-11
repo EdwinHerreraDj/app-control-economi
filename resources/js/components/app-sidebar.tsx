@@ -1,6 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
+    Gauge,
+    HandCoins,
+    Repeat,
+    Target,
     Landmark,
     LayoutGrid,
     ScrollText,
@@ -23,6 +27,10 @@ import { dashboard } from '@/routes';
 import { index as auditIndex } from '@/routes/admin/audit';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as accountsIndex } from '@/routes/accounts';
+import { index as budgetsIndex } from '@/routes/budgets';
+import { index as debtsIndex } from '@/routes/debts';
+import { index as goalsIndex } from '@/routes/goals';
+import { index as recurringIndex } from '@/routes/recurring';
 import { index as categoriesIndex } from '@/routes/categories';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
@@ -47,6 +55,29 @@ const mainNavItems: NavItem[] = [
         title: 'Categorías',
         href: categoriesIndex(),
         icon: Shapes,
+    },
+];
+
+const planningNavItems: NavItem[] = [
+    {
+        title: 'Recurrentes',
+        href: recurringIndex(),
+        icon: Repeat,
+    },
+    {
+        title: 'Presupuestos',
+        href: budgetsIndex(),
+        icon: Gauge,
+    },
+    {
+        title: 'Objetivos',
+        href: goalsIndex(),
+        icon: Target,
+    },
+    {
+        title: 'Deudas',
+        href: debtsIndex(),
+        icon: HandCoins,
     },
 ];
 
@@ -82,6 +113,7 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain label="Mis finanzas" items={mainNavItems} />
+                <NavMain label="Planificación" items={planningNavItems} />
                 {auth.can.administer && (
                     <NavMain label="Administración" items={adminNavItems} />
                 )}

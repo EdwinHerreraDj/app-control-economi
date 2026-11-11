@@ -24,6 +24,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $account_id
  * @property int|null $category_id
  * @property int|null $transfer_id
+ * @property int|null $debt_id
+ * @property int|null $debt_payment_id
+ * @property int|null $recurring_rule_id
+ * @property CarbonImmutable|null $occurrence_on
  * @property TransactionKind $kind
  * @property TransactionStatus $status
  * @property int $amount
@@ -63,6 +67,7 @@ class Transaction extends Model
             'amount' => 'integer',
             'occurred_on' => 'immutable_date',
             'due_on' => 'immutable_date',
+            'occurrence_on' => 'immutable_date',
             'voided_at' => 'datetime',
         ];
     }
@@ -89,6 +94,22 @@ class Transaction extends Model
     public function transfer(): BelongsTo
     {
         return $this->belongsTo(Transfer::class);
+    }
+
+    /**
+     * @return BelongsTo<Debt, $this>
+     */
+    public function debt(): BelongsTo
+    {
+        return $this->belongsTo(Debt::class);
+    }
+
+    /**
+     * @return BelongsTo<RecurringRule, $this>
+     */
+    public function recurringRule(): BelongsTo
+    {
+        return $this->belongsTo(RecurringRule::class);
     }
 
     public function isVoided(): bool

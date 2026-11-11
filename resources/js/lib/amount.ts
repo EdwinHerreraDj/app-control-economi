@@ -65,3 +65,22 @@ export function amountForInput(decimalValue: string, locale: string): string {
 
     return decimalValue.replace('.', decimal);
 }
+
+/**
+ * Normaliza los campos de importe de un formulario antes de enviarlo.
+ */
+export function normalizeAmountFields<T extends Record<string, unknown>>(
+    data: T,
+    fields: string[],
+    locale: string,
+): T {
+    const result: Record<string, unknown> = { ...data };
+
+    for (const field of fields) {
+        const value = result[field];
+        result[field] =
+            typeof value === 'string' ? normalizeAmount(value, locale) : value;
+    }
+
+    return result as T;
+}

@@ -13,6 +13,15 @@
 
 return [
 
+    // Días por delante para los que se generan previsiones recurrentes.
+    'recurring_horizon_days' => 62,
+
+    // Días por delante que se muestran en «Próximos vencimientos».
+    'upcoming_days' => 45,
+
+    // Porcentaje de un presupuesto a partir del cual se avisa con calma.
+    'budget_warning_percent' => 80,
+
     'icons' => [
         'briefcase', 'laptop', 'tag', 'rotate-ccw', 'circle-plus', 'house',
         'zap', 'shopping-cart', 'utensils', 'coffee', 'car', 'bus', 'plane',

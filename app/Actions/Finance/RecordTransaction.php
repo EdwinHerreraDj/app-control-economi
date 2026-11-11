@@ -178,6 +178,12 @@ class RecordTransaction
             ]);
         }
 
+        if ($transaction->kind->isDebtPrincipal() || $transaction->debt_payment_id !== null) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Este movimiento pertenece a una deuda. Gestiónalo desde el apartado Deudas.',
+            ]);
+        }
+
         if ($transaction->isVoided()) {
             throw ValidationException::withMessages([
                 'transaction' => 'El movimiento está anulado y ya no se puede modificar.',

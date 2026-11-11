@@ -116,6 +116,44 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Transfer::class);
     }
 
+    /**
+     * @return HasMany<Debt, $this>
+     */
+    public function debts(): HasMany
+    {
+        return $this->hasMany(Debt::class);
+    }
+
+    /**
+     * @return HasMany<RecurringRule, $this>
+     */
+    public function recurringRules(): HasMany
+    {
+        return $this->hasMany(RecurringRule::class);
+    }
+
+    /**
+     * @return HasMany<Budget, $this>
+     */
+    public function budgets(): HasMany
+    {
+        return $this->hasMany(Budget::class);
+    }
+
+    /**
+     * @return HasMany<SavingsGoal, $this>
+     */
+    public function savingsGoals(): HasMany
+    {
+        return $this->hasMany(SavingsGoal::class);
+    }
+
+    /** Fecha de hoy en la zona horaria del usuario. */
+    public function today(): CarbonImmutable
+    {
+        return CarbonImmutable::now($this->timezone)->startOfDay();
+    }
+
     public function isSuperuser(): bool
     {
         return $this->role === UserRole::Superuser;
