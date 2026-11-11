@@ -416,7 +416,7 @@ function GoalForm({
                                     <label
                                         key={option}
                                         className={cn(
-                                            'flex aspect-square cursor-pointer items-center justify-center rounded-lg border has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+                                            'flex aspect-square cursor-pointer items-center justify-center rounded-lg border has-focus-visible:ring-2 has-focus-visible:ring-ring',
                                             icon === option
                                                 ? 'border-primary bg-primary/10'
                                                 : 'hover:bg-muted',
@@ -455,7 +455,7 @@ function GoalForm({
                                     key={option}
                                     title={COLOR_LABELS[option]}
                                     className={cn(
-                                        'flex size-9 cursor-pointer items-center justify-center rounded-full border-2 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+                                        'flex size-9 cursor-pointer items-center justify-center rounded-full border-2 has-focus-visible:ring-2 has-focus-visible:ring-ring',
                                         color === option
                                             ? 'border-foreground'
                                             : 'border-transparent',

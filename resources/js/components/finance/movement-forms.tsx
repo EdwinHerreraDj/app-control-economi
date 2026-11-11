@@ -84,7 +84,7 @@ function StatusField({
                 ].map(([value, label, hint]) => (
                     <label
                         key={value}
-                        className="flex cursor-pointer flex-col rounded-lg border p-3 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
+                        className="flex cursor-pointer flex-col rounded-lg border p-3 text-sm has-checked:border-primary has-checked:bg-primary/5 has-focus-visible:ring-2 has-focus-visible:ring-ring"
                     >
                         <span className="flex items-center gap-2 font-medium">
                             <input

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\UserRole;
 use App\Models\User;
@@ -15,7 +16,7 @@ use Illuminate\Validation\Rule;
  */
 class UserRequest extends FormRequest
 {
-    use ProfileValidationRules;
+    use PasswordValidationRules, ProfileValidationRules;
 
     public function authorize(): bool
     {
@@ -38,10 +39,22 @@ class UserRequest extends FormRequest
         /** @var User|null $user */
         $user = $this->route('user');
 
+        $creating = $user === null;
+
         return [
             ...$this->profileRules($user?->getKey()),
             'role' => ['required', Rule::enum(UserRole::class)],
+            // Alta por invitación (correo con enlace) o con contraseña temporal.
+            'mode' => $creating ? ['required', Rule::in(['invite', 'password'])] : ['prohibited'],
+            'password' => $creating
+                ? ['exclude_unless:mode,password', ...$this->passwordRules()]
+                : ['prohibited'],
         ];
+    }
+
+    public function withPassword(): bool
+    {
+        return $this->validated('mode') === 'password';
     }
 
     /**
@@ -53,6 +66,8 @@ class UserRequest extends FormRequest
             'name' => 'nombre',
             'email' => 'correo electrónico',
             'role' => 'rol',
+            'mode' => 'forma de alta',
+            'password' => 'contraseña temporal',
         ];
     }
 

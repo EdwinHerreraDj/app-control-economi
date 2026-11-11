@@ -26,7 +26,7 @@ test('the superuser sees the user list without financial data', function () {
             ->component('admin/users/index')
             ->has('users.data', 4)
             ->has('users.data.0', fn (Assert $user) => $user
-                ->hasAll(['id', 'name', 'email', 'role', 'status', 'email_verified', 'invited_at', 'activated_at', 'created_at', 'is_current'])));
+                ->hasAll(['id', 'name', 'email', 'role', 'status', 'email_verified', 'must_change_password', 'invited_at', 'activated_at', 'created_at', 'is_current'])));
 });
 
 test('the list can be searched by name or email', function () {
@@ -41,7 +41,7 @@ test('the list can be searched by name or email', function () {
 
 test('inviting a user creates a pending account and emails a link', function () {
     $this->actingAs($this->admin)
-        ->post(route('admin.users.store'), [
+        ->post(route('admin.users.store'), ['mode' => 'invite',
             'name' => ' Ana ',
             'email' => 'ANA@Example.com',
             'role' => 'user',
@@ -63,7 +63,7 @@ test('duplicate emails are rejected', function () {
     User::factory()->create(['email' => 'ana@example.com']);
 
     $this->actingAs($this->admin)
-        ->post(route('admin.users.store'), ['name' => 'Ana', 'email' => 'Ana@example.com', 'role' => 'user'])
+        ->post(route('admin.users.store'), ['mode' => 'invite', 'name' => 'Ana', 'email' => 'Ana@example.com', 'role' => 'user'])
         ->assertSessionHasErrors('email');
 });
 

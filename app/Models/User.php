@@ -31,6 +31,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string $timezone
  * @property string $locale Idioma de la interfaz.
  * @property CarbonImmutable|null $onboarded_at
+ * @property bool $must_change_password Entró con una contraseña temporal del superusuario.
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -53,6 +54,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'activated_at' => 'datetime',
             'suspended_at' => 'datetime',
             'onboarded_at' => 'datetime',
+            'must_change_password' => 'boolean',
         ];
     }
 

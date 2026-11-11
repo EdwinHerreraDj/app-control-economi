@@ -16,7 +16,7 @@ function inviteAndCaptureToken(string $email = 'ana@example.com'): array
     $admin = User::factory()->superuser()->create();
 
     test()->actingAs($admin)
-        ->post(route('admin.users.store'), ['name' => 'Ana', 'email' => $email, 'role' => 'user'])
+        ->post(route('admin.users.store'), ['mode' => 'invite', 'name' => 'Ana', 'email' => $email, 'role' => 'user'])
         ->assertSessionHasNoErrors();
 
     auth()->logout();

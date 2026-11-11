@@ -53,6 +53,8 @@ El almacenamiento local estará separado por usuario y no permitirá mostrar inf
 
 El registro público estará deshabilitado inicialmente. El superusuario dará de alta a los usuarios con nombre y correo. Se enviará un enlace temporal para establecer contraseña, completar preferencias y entrar en la aplicación.
 
+Como alternativa, el superusuario podrá crear la cuenta directamente con una contraseña temporal, sin enviar ningún correo. El correo sigue siendo obligatorio porque identifica a la persona al iniciar sesión. En el primer inicio de sesión será obligatorio sustituir la contraseña temporal por una propia, de modo que el administrador deje de conocerla. El superusuario también podrá poner una contraseña temporal a una cuenta existente cuando no pueda recuperarse por correo; esto cierra sus sesiones abiertas.
+
 Se incluirán inicio y cierre de sesión, recuperación por correo, cambio de contraseña, limitación de intentos y revocación de acceso persistente por dispositivo.
 
 Las contraseñas se almacenarán mediante hash; no se enviarán por correo ni se mostrarán al administrador. Los enlaces de activación y recuperación serán temporales y de un solo uso.

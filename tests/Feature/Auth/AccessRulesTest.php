@@ -62,7 +62,7 @@ test('regular users cannot access the administration', function () {
     $this->actingAs($user)->get(route('admin.users.index'))->assertForbidden();
     $this->actingAs($user)->get(route('admin.audit.index'))->assertForbidden();
     $this->actingAs($user)
-        ->post(route('admin.users.store'), ['name' => 'X', 'email' => 'x@example.com', 'role' => 'superuser'])
+        ->post(route('admin.users.store'), ['mode' => 'invite', 'name' => 'X', 'email' => 'x@example.com', 'role' => 'superuser'])
         ->assertForbidden();
 
     expect(User::count())->toBe(1);

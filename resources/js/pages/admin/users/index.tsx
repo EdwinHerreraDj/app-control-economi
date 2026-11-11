@@ -4,6 +4,7 @@ import {
     CircleCheck,
     Clock,
     KeyRound,
+    LockKeyhole,
     Mail,
     MoreHorizontal,
     Pencil,
@@ -18,6 +19,7 @@ import { toast } from 'sonner';
 import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
 import { Pagination } from '@/components/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,6 +59,7 @@ type AdminUser = {
     role: UserRole;
     status: UserStatus;
     email_verified: boolean;
+    must_change_password: boolean;
     invited_at: string | null;
     activated_at: string | null;
     created_at: string | null;
@@ -74,6 +77,7 @@ type DialogState =
     | { type: 'create' }
     | { type: 'edit'; user: AdminUser }
     | { type: 'suspend'; user: AdminUser }
+    | { type: 'password'; user: AdminUser }
     | null;
 
 const STATUS_ICON: Record<UserStatus, ReactNode> = {
@@ -118,7 +122,7 @@ export default function UsersIndex({ users, filters, roles, statuses }: Props) {
                     />
                     <Button onClick={() => setDialog({ type: 'create' })}>
                         <UserPlus aria-hidden="true" />
-                        Invitar usuario
+                        Nuevo usuario
                     </Button>
                 </div>
 
@@ -209,6 +213,12 @@ export default function UsersIndex({ users, filters, roles, statuses }: Props) {
                                         {STATUS_ICON[user.status]}
                                         {statuses[user.status]}
                                     </Badge>
+                                    {user.must_change_password && (
+                                        <Badge variant="outline">
+                                            <KeyRound aria-hidden="true" />
+                                            Debe cambiar la contraseña
+                                        </Badge>
+                                    )}
                                 </div>
 
                                 <UserActions
@@ -218,6 +228,9 @@ export default function UsersIndex({ users, filters, roles, statuses }: Props) {
                                     }
                                     onSuspend={() =>
                                         setDialog({ type: 'suspend', user })
+                                    }
+                                    onSetPassword={() =>
+                                        setDialog({ type: 'password', user })
                                     }
                                 />
                             </li>
@@ -283,6 +296,20 @@ export default function UsersIndex({ users, filters, roles, statuses }: Props) {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <Dialog
+                open={dialog?.type === 'password'}
+                onOpenChange={(open) => !open && setDialog(null)}
+            >
+                <DialogContent>
+                    {dialog?.type === 'password' && (
+                        <TemporaryPasswordForm
+                            user={dialog.user}
+                            onDone={() => setDialog(null)}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
@@ -291,10 +318,12 @@ function UserActions({
     user,
     onEdit,
     onSuspend,
+    onSetPassword,
 }: {
     user: AdminUser;
     onEdit: () => void;
     onSuspend: () => void;
+    onSetPassword: () => void;
 }) {
     return (
         <DropdownMenu>
@@ -339,6 +368,13 @@ function UserActions({
                     </DropdownMenuItem>
                 )}
 
+                {!user.is_current && user.status !== 'suspended' && (
+                    <DropdownMenuItem onSelect={onSetPassword}>
+                        <LockKeyhole aria-hidden="true" />
+                        Poner contraseña temporal
+                    </DropdownMenuItem>
+                )}
+
                 {!user.is_current && (
                     <>
                         <DropdownMenuSeparator />
@@ -378,6 +414,7 @@ function UserForm({
     roles: Props['roles'];
     onDone: () => void;
 }) {
+    const [mode, setMode] = useState<'invite' | 'password'>('invite');
     const form = user
         ? UserController.update.form(user.id)
         : UserController.store.form();
@@ -392,13 +429,58 @@ function UserForm({
             {({ errors, processing }) => (
                 <>
                     <DialogTitle>
-                        {user ? `Editar a ${user.name}` : 'Invitar usuario'}
+                        {user ? `Editar a ${user.name}` : 'Nuevo usuario'}
                     </DialogTitle>
                     <DialogDescription>
                         {user
                             ? 'Si cambias el correo de una cuenta activa, tendrá que volver a verificarlo.'
-                            : 'Recibirá un correo con un enlace para establecer su contraseña. El enlace caduca en 72 horas.'}
+                            : 'Elige cómo dar de alta la cuenta. El correo es su usuario para iniciar sesión.'}
                     </DialogDescription>
+
+                    {!user && (
+                        <fieldset className="grid gap-2">
+                            <legend className="mb-1 text-sm font-medium">
+                                Forma de alta
+                            </legend>
+                            {(
+                                [
+                                    [
+                                        'invite',
+                                        'Enviar invitación por correo',
+                                        'Recibirá un enlace (válido 72 horas) para elegir su contraseña.',
+                                    ],
+                                    [
+                                        'password',
+                                        'Crear con una contraseña temporal',
+                                        'No se envía ningún correo. Al entrar por primera vez tendrá que elegir la suya.',
+                                    ],
+                                ] as const
+                            ).map(([value, label, hint]) => (
+                                <label
+                                    key={value}
+                                    className="flex cursor-pointer gap-3 rounded-lg border p-3 text-sm has-checked:border-primary has-checked:bg-primary/5 has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                                >
+                                    <input
+                                        type="radio"
+                                        name="mode"
+                                        value={value}
+                                        checked={mode === value}
+                                        onChange={() => setMode(value)}
+                                        className="mt-0.5 accent-primary"
+                                    />
+                                    <span>
+                                        <span className="font-medium">
+                                            {label}
+                                        </span>
+                                        <span className="block text-xs text-muted-foreground">
+                                            {hint}
+                                        </span>
+                                    </span>
+                                </label>
+                            ))}
+                            <InputError message={errors.mode} />
+                        </fieldset>
+                    )}
 
                     <div className="grid gap-2">
                         <Label htmlFor="user-name">Nombre</Label>
@@ -466,6 +548,10 @@ function UserForm({
                         <InputError message={errors.role} />
                     </div>
 
+                    {!user && mode === 'password' && (
+                        <TemporaryPasswordFields errors={errors} />
+                    )}
+
                     <DialogFooter className="gap-2">
                         <DialogClose asChild>
                             <Button type="button" variant="secondary">
@@ -474,7 +560,91 @@ function UserForm({
                         </DialogClose>
                         <Button type="submit" disabled={processing}>
                             {processing && <Spinner />}
-                            {user ? 'Guardar cambios' : 'Enviar invitación'}
+                            {user
+                                ? 'Guardar cambios'
+                                : mode === 'password'
+                                  ? 'Crear cuenta'
+                                  : 'Enviar invitación'}
+                        </Button>
+                    </DialogFooter>
+                </>
+            )}
+        </Form>
+    );
+}
+
+function TemporaryPasswordFields({
+    errors,
+}: {
+    errors: Partial<Record<string, string>>;
+}) {
+    return (
+        <div className="grid gap-4 rounded-xl border p-4">
+            <div className="grid gap-2">
+                <Label htmlFor="temp-password">Contraseña temporal</Label>
+                <PasswordInput
+                    id="temp-password"
+                    name="password"
+                    autoComplete="new-password"
+                    required
+                />
+                <InputError message={errors.password} />
+            </div>
+            <div className="grid gap-2">
+                <Label htmlFor="temp-password-confirmation">
+                    Repite la contraseña
+                </Label>
+                <PasswordInput
+                    id="temp-password-confirmation"
+                    name="password_confirmation"
+                    autoComplete="new-password"
+                    required
+                />
+                <InputError message={errors.password_confirmation} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+                Comunícasela por un canal seguro (en persona o por teléfono). Al
+                entrar tendrá que cambiarla, así que dejarás de conocerla.
+            </p>
+        </div>
+    );
+}
+
+function TemporaryPasswordForm({
+    user,
+    onDone,
+}: {
+    user: AdminUser;
+    onDone: () => void;
+}) {
+    return (
+        <Form
+            {...UserController.setTemporaryPassword.form(user.id)}
+            options={{ preserveScroll: true }}
+            onSuccess={onDone}
+            resetOnError
+            className="space-y-6"
+        >
+            {({ errors, processing }) => (
+                <>
+                    <DialogTitle>
+                        Contraseña temporal para {user.name}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Útil si no puede recuperar su contraseña por correo. Se
+                        cerrarán sus sesiones abiertas y, al volver a entrar,
+                        tendrá que elegir una nueva.
+                    </DialogDescription>
+                    <TemporaryPasswordFields errors={errors} />
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button type="button" variant="secondary">
+                                Cancelar
+                            </Button>
+                        </DialogClose>
+                        <Button type="submit" disabled={processing}>
+                            {processing && <Spinner />}
+                            Guardar contraseña temporal
                         </Button>
                     </DialogFooter>
                 </>

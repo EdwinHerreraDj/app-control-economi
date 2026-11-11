@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\ChoosePasswordController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Finance\AccountController;
@@ -24,6 +25,14 @@ Route::middleware('guest')->group(function () {
     Route::post('invitation', [InvitationController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('invitation.store');
+});
+
+// Cambio obligatorio de la contraseña temporal puesta por el superusuario.
+Route::middleware('auth')->group(function () {
+    Route::get('choose-password', [ChoosePasswordController::class, 'show'])->name('password.choose');
+    Route::post('choose-password', [ChoosePasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('password.choose.store');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -97,6 +106,9 @@ Route::middleware(['auth', 'verified', 'onboarded', 'can:administer'])
         Route::post('users/{user}/invitation', [UserController::class, 'resendInvitation'])
             ->middleware('throttle:6,1')
             ->name('users.invitation');
+        Route::put('users/{user}/temporary-password', [UserController::class, 'setTemporaryPassword'])
+            ->middleware('throttle:6,1')
+            ->name('users.temporary-password');
         Route::post('users/{user}/password-reset', [UserController::class, 'sendPasswordReset'])
             ->middleware('throttle:6,1')
             ->name('users.password-reset');

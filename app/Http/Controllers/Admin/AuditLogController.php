@@ -24,6 +24,9 @@ class AuditLogController extends Controller
         'user.password_reset' => 'Contraseña restablecida',
         'user.other_sessions_closed' => 'Cierre de sesiones en otros dispositivos',
         'user.currency_changed' => 'Cambio de moneda principal',
+        'user.created_with_password' => 'Usuario dado de alta con contraseña temporal',
+        'user.temporary_password_set' => 'Contraseña temporal puesta por el administrador',
+        'user.password_chosen' => 'Contraseña temporal sustituida por la propia',
     ];
 
     public function index(): Response

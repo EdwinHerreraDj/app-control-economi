@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureOnboardingCompleted;
+use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // contraseña o el usuario cierra las demás sesiones.
             AuthenticateSession::class,
             EnsureUserIsActive::class,
+            EnsurePasswordChanged::class,
             SetUserLocale::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
