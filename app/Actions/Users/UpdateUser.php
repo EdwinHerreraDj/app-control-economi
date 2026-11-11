@@ -5,7 +5,9 @@ namespace App\Actions\Users;
 use App\Enums\UserRole;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Notifications\AccountChangedByAdministrator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class UpdateUser
@@ -38,6 +40,7 @@ class UpdateUser
             }
 
             $emailChanged = $user->email !== $email;
+            $previousEmail = (string) $user->email;
 
             $user->fill(['name' => $name, 'email' => $email]);
             $user->forceFill(['role' => $role]);
@@ -55,6 +58,10 @@ class UpdateUser
 
             if ($emailChanged && ! $user->isPending()) {
                 DB::afterCommit(fn () => $user->sendEmailVerificationNotification());
+
+                // Aviso a la dirección anterior: es la del titular.
+                DB::afterCommit(fn () => Notification::route('mail', $previousEmail)
+                    ->notify(new AccountChangedByAdministrator('email_changed', $user->name, $email)));
             }
         });
 

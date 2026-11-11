@@ -36,6 +36,10 @@ export function FileUpload({
                 id={inputId}
                 type="file"
                 accept={accept}
+                // Se activa con el botón: sin parada de tabulación propia,
+                // pero con nombre accesible por si un lector lo alcanza.
+                aria-label={label}
+                tabIndex={-1}
                 className="sr-only"
                 onChange={(event) => {
                     const file = event.target.files?.[0];

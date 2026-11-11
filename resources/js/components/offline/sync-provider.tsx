@@ -22,14 +22,32 @@ import { logout } from '@/routes';
 /** Tiempo mínimo entre sincronizaciones automáticas. */
 const THROTTLE_MS = 60_000;
 
-let lastAutoSync = 0;
+const LAST_SYNC_KEY = 'ep.offline.lastAutoSync';
+
+// Se recuerda entre recargas de la página para no repetir la descarga en
+// cada carga completa (el servidor limita las peticiones por minuto).
+function lastAutoSync(): number {
+    try {
+        return Number(window.sessionStorage.getItem(LAST_SYNC_KEY) ?? 0);
+    } catch {
+        return 0;
+    }
+}
 
 function autoSync(force = false): void {
-    if (!force && Date.now() - lastAutoSync < THROTTLE_MS) {
+    const now = Date.now();
+    const minimum = force ? 10_000 : THROTTLE_MS;
+
+    if (now - lastAutoSync() < minimum) {
         return;
     }
 
-    lastAutoSync = Date.now();
+    try {
+        window.sessionStorage.setItem(LAST_SYNC_KEY, String(now));
+    } catch {
+        // Sin almacenamiento de sesión: se sincroniza igualmente.
+    }
+
     void syncNow();
 }
 
@@ -98,7 +116,8 @@ export function SyncProvider() {
         const offFinish = router.on('finish', (event) => {
             if (event.detail.visit.method !== 'get') {
                 window.clearTimeout(timer);
-                timer = window.setTimeout(() => autoSync(true), 1500);
+                // Ya agrupado por el temporizador: actualiza la copia local.
+                timer = window.setTimeout(() => void syncNow(), 1500);
             }
         });
 

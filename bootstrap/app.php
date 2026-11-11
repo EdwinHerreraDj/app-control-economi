@@ -5,7 +5,9 @@ use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetUserLocale;
+use App\Http\Middleware\ThrottlePasswordResetRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Cabeceras de seguridad y CSP también en respuestas JSON y estáticas.
+        $middleware->append(SecurityHeaders::class);
+
         $middleware->web(append: [
             // Invalida las sesiones de otros dispositivos cuando cambia la
             // contraseña o el usuario cierra las demás sesiones.
@@ -33,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureUserIsActive::class,
             EnsurePasswordChanged::class,
             SetUserLocale::class,
+            ThrottlePasswordResetRequests::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

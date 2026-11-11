@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Notifications\AccountChangedByAdministrator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -59,7 +60,10 @@ class SetTemporaryPassword
             ]);
         }
 
-        DB::transaction(function () use ($user, $password) {
+        // Solo se avisa a quien ya usaba la cuenta (una invitada aún no tiene nada).
+        $wasActivated = $user->activated_at !== null;
+
+        DB::transaction(function () use ($user, $password, $wasActivated) {
             $user->forceFill([
                 'password' => $password,
                 'must_change_password' => true,
@@ -78,6 +82,11 @@ class SetTemporaryPassword
             }
 
             AuditLog::record('user.temporary_password_set', $user);
+
+            // El titular siempre se entera de que alguien puede entrar en su cuenta.
+            if ($wasActivated) {
+                DB::afterCommit(fn () => $user->notify(new AccountChangedByAdministrator('temporary_password', $user->name)));
+            }
         });
     }
 
