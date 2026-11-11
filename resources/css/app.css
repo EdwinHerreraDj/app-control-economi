@@ -51,6 +51,9 @@
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
 
+    --color-series-1: var(--series-1);
+    --color-series-2: var(--series-2);
+
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -101,6 +104,9 @@
     --sidebar-accent-foreground: oklch(0.25 0.04 200);
     --sidebar-border: oklch(0.905 0.012 190);
     --sidebar-ring: oklch(0.6 0.1 186);
+    /* Series de gráficos (validadas: CVD y contraste sobre la tarjeta clara). */
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
 }
 
 .dark {
@@ -136,6 +142,9 @@
     --sidebar-accent-foreground: oklch(0.95 0.006 190);
     --sidebar-border: oklch(0.29 0.016 210);
     --sidebar-ring: oklch(0.66 0.1 182);
+    /* Series de gráficos (validadas: CVD y contraste sobre la tarjeta oscura). */
+    --series-1: #3987e5;
+    --series-2: #d95926;
 }
 
 @layer base {

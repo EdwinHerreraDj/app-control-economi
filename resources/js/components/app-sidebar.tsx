@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
+    ChartColumn,
     Gauge,
     HandCoins,
     Repeat,
@@ -23,7 +24,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, statistics } from '@/routes';
 import { index as auditIndex } from '@/routes/admin/audit';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as accountsIndex } from '@/routes/accounts';
@@ -55,6 +56,11 @@ const mainNavItems: NavItem[] = [
         title: 'Categorías',
         href: categoriesIndex(),
         icon: Shapes,
+    },
+    {
+        title: 'Estadísticas',
+        href: statistics(),
+        icon: ChartColumn,
     },
 ];
 

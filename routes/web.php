@@ -3,12 +3,14 @@
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Finance\AccountController;
 use App\Http\Controllers\Finance\BudgetController;
 use App\Http\Controllers\Finance\CategoryController;
 use App\Http\Controllers\Finance\DebtController;
 use App\Http\Controllers\Finance\RecurringRuleController;
 use App\Http\Controllers\Finance\SavingsGoalController;
+use App\Http\Controllers\Finance\StatisticsController;
 use App\Http\Controllers\Finance\TransactionController;
 use App\Http\Controllers\Finance\TransferController;
 use App\Http\Controllers\OnboardingController;
@@ -30,7 +32,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
+    Route::get('statistics', StatisticsController::class)->name('statistics');
 
     // Finanzas personales. Los modelos se resuelven solo entre los del
     // usuario con sesión (BelongsToUser): un id ajeno responde 404.

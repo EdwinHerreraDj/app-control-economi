@@ -22,6 +22,13 @@ return [
     // Porcentaje de un presupuesto a partir del cual se avisa con calma.
     'budget_warning_percent' => 80,
 
+    // «Margen reducido»: el saldo más bajo previsto queda por debajo de
+    // este porcentaje del saldo actual (lo usan el panel y la mascota).
+    'attention_margin_percent' => 10,
+
+    // Días de la previsión de liquidez del panel.
+    'forecast_days' => 30,
+
     'icons' => [
         'briefcase', 'laptop', 'tag', 'rotate-ccw', 'circle-plus', 'house',
         'zap', 'shopping-cart', 'utensils', 'coffee', 'car', 'bus', 'plane',

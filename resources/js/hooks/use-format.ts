@@ -31,6 +31,11 @@ export function useFormat() {
                 formatDay(value, preferences),
             relative: (value: string | null | undefined) =>
                 formatRelative(value, preferences),
+            // Porcentaje con el separador decimal del formato regional (55,9 %).
+            percent: (value: number) =>
+                new Intl.NumberFormat(preferences.number_locale, {
+                    maximumFractionDigits: 1,
+                }).format(value) + ' %',
         }),
         [preferences],
     );

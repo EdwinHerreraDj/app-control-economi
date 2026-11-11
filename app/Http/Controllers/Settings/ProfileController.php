@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\Users\DeleteUserAccount;
 use App\Actions\Users\EnsureSuperuserRemains;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
@@ -48,18 +49,21 @@ class ProfileController extends Controller
     /**
      * Delete the user's profile.
      */
-    public function destroy(ProfileDeleteRequest $request, EnsureSuperuserRemains $ensureSuperuserRemains): RedirectResponse
-    {
+    public function destroy(
+        ProfileDeleteRequest $request,
+        EnsureSuperuserRemains $ensureSuperuserRemains,
+        DeleteUserAccount $deleteUserAccount,
+    ): RedirectResponse {
         $user = $request->user();
 
-        DB::transaction(function () use ($user, $ensureSuperuserRemains) {
+        DB::transaction(function () use ($user, $ensureSuperuserRemains, $deleteUserAccount) {
             $ensureSuperuserRemains->check($user, 'password');
 
             // Cerrar la sesión antes de borrar: el logout guarda de nuevo el
             // usuario (renueva su remember_token) y lo volvería a crear.
             Auth::logout();
 
-            $user->delete();
+            $deleteUserAccount->handle($user);
         });
 
         $request->session()->invalidate();

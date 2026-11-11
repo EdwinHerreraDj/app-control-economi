@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $color
  * @property CarbonImmutable|null $achieved_at
  * @property CarbonImmutable|null $archived_at
+ * @property-read int|string|null $contributions_sum_amount Suma de aportaciones (con withSum).
  */
 class SavingsGoal extends Model
 {
