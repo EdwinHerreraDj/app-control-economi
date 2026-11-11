@@ -192,7 +192,7 @@ export default function CategoriesIndex({ categories, icons, colors }: Props) {
                 open={editing !== null}
                 onOpenChange={(open) => !open && setEditing(null)}
             >
-                <DialogContent className="max-h-[90svh] overflow-y-auto">
+                <DialogContent>
                     {editing !== null && (
                         <CategoryForm
                             category={editing === 'new' ? null : editing}

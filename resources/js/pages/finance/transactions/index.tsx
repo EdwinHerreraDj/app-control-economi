@@ -331,7 +331,7 @@ export default function TransactionsIndex({
                 open={dialog !== null}
                 onOpenChange={(open) => !open && setDialog(null)}
             >
-                <DialogContent className="max-h-[90svh] overflow-y-auto">
+                <DialogContent>
                     {dialog?.type === 'void' && (
                         <VoidForm
                             movement={dialog.movement}
