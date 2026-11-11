@@ -5,6 +5,7 @@ namespace App\Backup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use PDO;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
@@ -13,8 +14,9 @@ use Symfony\Component\Process\Process;
 use ZipArchive;
 
 /**
- * Copias de seguridad de la base de datos (MySQL/MariaDB) y de los archivos
- * subidos, y su prueba de restauración en una base de datos temporal.
+ * Copias de seguridad de la base de datos (MySQL 8+ o MariaDB 10.6+) y de los
+ * archivos subidos, y su prueba de restauración en una base de datos temporal.
+ * Los programas y opciones de cada motor los decide DatabaseTools.
  *
  * Las credenciales nunca van en la línea de órdenes (serían visibles en la
  * lista de procesos): se pasan en un archivo temporal legible solo por el
@@ -26,6 +28,8 @@ class BackupManager
     private const VOLATILE = ['sessions', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs'];
 
     private const NAME = '/^\d{8}-\d{6}$/';
+
+    public function __construct(private readonly DatabaseTools $tools) {}
 
     /**
      * @return array{name: string, path: string, created_at: string, tables: array<string, int>, consistent: bool, media_files: int, files: array<string, array{sha256: string, bytes: int}>}
@@ -40,20 +44,12 @@ class BackupManager
         $before = $this->rowCounts($connection['database']);
         $sql = $directory.DIRECTORY_SEPARATOR.'database.sql';
 
-        $this->withCredentials($connection, fn (string $defaults) => $this->run([
-            (string) config('backup.mysqldump'),
-            "--defaults-extra-file={$defaults}",
-            '--single-transaction',
-            '--quick',
-            '--routines',
-            '--triggers',
-            '--no-tablespaces',
-            '--hex-blob',
-            '--default-character-set=utf8mb4',
-            ...($connection['driver'] === 'mysql' ? ['--set-gtid-purged=OFF'] : []),
-            "--result-file={$sql}",
-            $connection['database'],
-        ]));
+        $engine = $this->engine($connection);
+        $binary = $this->tools->dumpBinary($engine, $this->configured('backup.mysqldump'));
+
+        $this->withCredentials($connection, fn (string $defaults) => $this->run(
+            $this->tools->dumpCommand($engine, $binary, $defaults, $connection['database'], $sql),
+        ));
 
         $this->gzip($sql, $sql.'.gz');
         File::delete($sql);
@@ -175,12 +171,14 @@ class BackupManager
             }
 
             try {
-                $this->withCredentials($connection, fn (string $defaults) => $this->run([
-                    (string) config('backup.mysql'),
-                    "--defaults-extra-file={$defaults}",
-                    '--default-character-set=utf8mb4',
-                    $temporary,
-                ], $dump));
+                // Cliente del mismo motor: los volcados de MariaDB 11 empiezan
+                // con una línea que el cliente de MySQL no entiende.
+                $client = $this->tools->clientBinary($this->engine($connection), $this->configured('backup.mysql'));
+
+                $this->withCredentials($connection, fn (string $defaults) => $this->run(
+                    $this->tools->restoreCommand($client, $defaults, $temporary),
+                    $dump,
+                ));
             } finally {
                 fclose($dump);
             }
@@ -237,6 +235,25 @@ class BackupManager
         }
 
         return $connection;
+    }
+
+    /**
+     * Motor real del servidor: Laravel usa el driver «mysql» también con MariaDB.
+     *
+     * @param  array{driver: string}  $connection
+     */
+    private function engine(array $connection): string
+    {
+        $version = (string) DB::connection()->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
+
+        return DatabaseTools::engine($connection['driver'], $version);
+    }
+
+    private function configured(string $key): ?string
+    {
+        $value = config($key);
+
+        return is_string($value) && trim($value) !== '' ? $value : null;
     }
 
     /**

@@ -8,7 +8,7 @@ Guía para instalar y actualizar Economía Personal en un servidor propio.
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | PHP              | 8.3 o superior, con `bcmath`, `ctype`, `curl`, `fileinfo`, `gd`, `intl`, `mbstring`, `openssl`, `pdo_mysql`, `tokenizer`, `xml`, `zip`, `zlib` |
 | Base de datos    | MySQL 8 o superior (o MariaDB 10.6+), juego de caracteres `utf8mb4`                                                                            |
-| Cliente de MySQL | `mysqldump` y `mysql` en el servidor (copias de seguridad)                                                                                     |
+| Cliente de la BD | Copias de seguridad: `mysqldump` y `mysql` (MySQL) o `mariadb-dump` y `mariadb` (MariaDB). Se eligen solos según el motor del servidor         |
 | Node.js          | 20 o superior, solo para compilar la interfaz                                                                                                  |
 | Composer         | 2.x                                                                                                                                            |
 | Servidor web     | Nginx o Apache con **HTTPS obligatorio**                                                                                                       |
@@ -45,7 +45,10 @@ MAIL_FROM_ADDRESS=no-responder@tu-dominio.example
 # Copias de seguridad (ver docs/operacion.md)
 BACKUP_PATH=/var/backups/economia
 BACKUP_KEEP_DAYS=14
+# BACKUP_MYSQLDUMP= y BACKUP_MYSQL= solo si los programas no están en el PATH
 ```
+
+Con MariaDB no hace falta configurar nada especial. La app detecta el motor por la versión del servidor (Laravel usa el driver `mysql` para ambos) y usa `mariadb-dump`/`mariadb`, sin opciones exclusivas de MySQL como `--set-gtid-purged`. En Debian/Ubuntu vienen en el paquete `mariadb-client`.
 
 Genera la clave de cifrado una sola vez con `php artisan key:generate`. **Guarda una copia de `APP_KEY` fuera del servidor**: sin ella no se pueden leer las sesiones ni los datos cifrados de una copia restaurada.
 

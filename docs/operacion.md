@@ -16,6 +16,8 @@ Se ejecuta cada día a las 03:00 y borra las copias de más de `BACKUP_KEEP_DAYS
 
 Las credenciales de la base de datos nunca aparecen en la línea de órdenes: se pasan en un archivo temporal que solo puede leer el usuario del sistema.
 
+Funciona con MySQL 8+ y con MariaDB 10.6+. El motor se detecta por la versión del servidor y se usan sus propios programas: `mysqldump`/`mysql` o `mariadb-dump`/`mariadb`. Si no están en el `PATH`, indica la ruta completa en `BACKUP_MYSQLDUMP` y `BACKUP_MYSQL`.
+
 ### Fuera del servidor
 
 Las copias contienen datos financieros personales. Llévalas también a otro sitio, **cifradas**. Por ejemplo, con `restic` o `rclone crypt` desde el cron, después de las 03:00:
@@ -51,9 +53,13 @@ php artisan app:backup                      # copia del estado actual, por si ac
 
 COPIA=/var/backups/economia/20261111-030000
 
+# Cliente del mismo motor que el servidor: «mariadb» con MariaDB, «mysql» con MySQL
+# (los volcados de MariaDB 11 empiezan con una línea que el cliente de MySQL no entiende).
+CLIENTE=mariadb
+
 # Base de datos (vacía antes la actual o restaura en una nueva)
-mysql -u economia -p -e "DROP DATABASE personal_economi; CREATE DATABASE personal_economi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-gunzip -c "$COPIA/database.sql.gz" | mysql -u economia -p personal_economi
+$CLIENTE -u economia -p -e "DROP DATABASE personal_economi; CREATE DATABASE personal_economi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+gunzip -c "$COPIA/database.sql.gz" | $CLIENTE -u economia -p personal_economi
 
 # Archivos subidos
 rm -rf storage/app/public/* && unzip -o "$COPIA/media.zip" -d storage/app/public
