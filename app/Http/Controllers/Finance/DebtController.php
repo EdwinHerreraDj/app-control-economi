@@ -41,6 +41,8 @@ class DebtController extends Controller
         $rows = $debts->map(function (Debt $debt) use (&$totalOutstanding) {
             $active = $debt->payments->whereNull('voided_at');
             $repaid = (int) $active->sum('principal_amount');
+            // Lo pagado antes de usar la app también cuenta como devuelto.
+            $repaid = min($debt->principal, $repaid + $debt->paid_before);
             $outstanding = max(0, $debt->principal - $repaid);
             $totalOutstanding += $debt->isSettled() ? 0 : $outstanding;
             $money = fn (?int $amount) => $amount !== null ? Money::toDecimal($amount, $debt->currency) : null;
@@ -51,6 +53,7 @@ class DebtController extends Controller
                 'concept' => $debt->concept,
                 'currency' => $debt->currency,
                 'principal' => $money($debt->principal),
+                'paid_before' => $money($debt->paid_before),
                 'outstanding' => $money($outstanding),
                 'repaid_percent' => $debt->principal > 0 ? (int) floor($repaid * 100 / $debt->principal) : 100,
                 'interest_paid' => $money((int) $active->sum('interest_amount')),

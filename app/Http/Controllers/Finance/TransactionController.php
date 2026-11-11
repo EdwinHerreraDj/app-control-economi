@@ -15,6 +15,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Rules\MoneyAmount;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,6 +23,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -128,12 +130,40 @@ class TransactionController extends Controller
         return back();
     }
 
-    public function confirm(Transaction $transaction, RecordTransaction $record): RedirectResponse
+    /**
+     * «Ya lo pagué» / «Ya lo cobré». Opcionalmente con el importe, la fecha
+     * y la cuenta reales (la luz no cuesta lo mismo cada mes).
+     */
+    public function confirm(Request $request, Transaction $transaction, RecordTransaction $record): RedirectResponse
     {
         Gate::authorize('update', $transaction);
 
-        $record->confirm($transaction);
-        $this->toast($transaction->kind === TransactionKind::Income ? 'Marcado como cobrado.' : 'Marcado como pagado.');
+        /** @var User $user */
+        $user = $request->user();
+        $validated = $request->validate([
+            'amount' => ['nullable', new MoneyAmount((string) $user->currency)],
+            'occurred_on' => ['nullable', 'date_format:Y-m-d'],
+            'account_id' => ['nullable', 'integer', Rule::exists('accounts', 'id')->where('user_id', $user->id)],
+        ], [], ['amount' => 'importe', 'occurred_on' => 'fecha', 'account_id' => 'cuenta']);
+
+        $record->confirmWith(
+            $transaction,
+            isset($validated['amount']) ? Money::toMinor((string) $validated['amount'], (string) $user->currency) : null,
+            isset($validated['occurred_on']) ? CarbonImmutable::parse($validated['occurred_on']) : null,
+            isset($validated['account_id']) ? Account::query()->ownedBy($user)->whereKey((int) $validated['account_id'])->firstOrFail() : null,
+        );
+
+        $this->toast($transaction->kind === TransactionKind::Income ? '¡Hecho! Lo hemos sumado a tu dinero.' : '¡Hecho! Lo hemos restado de tu dinero.');
+
+        return back();
+    }
+
+    public function destroy(Transaction $transaction, RecordTransaction $record): RedirectResponse
+    {
+        Gate::authorize('update', $transaction);
+
+        $record->delete($transaction);
+        $this->toast('Borrado. Tus cuentas ya están al día.');
 
         return back();
     }
@@ -195,7 +225,8 @@ class TransactionController extends Controller
             'planned' => $query->where('status', TransactionStatus::Planned->value)->whereNull('voided_at'),
             'confirmed' => $query->where('status', TransactionStatus::Confirmed->value)->whereNull('voided_at'),
             'voided' => $query->whereNotNull('voided_at'),
-            default => null,
+            // Lo anulado u omitido no estorba en la lista: se ve con su filtro.
+            default => $query->whereNull('voided_at'),
         };
 
         if ($filters['category'] !== null) {

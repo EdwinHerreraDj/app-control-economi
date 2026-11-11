@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ExpenseNature;
+use App\Enums\SpendingType;
 use App\Enums\TransactionKind;
 use App\Enums\TransactionStatus;
 use App\Models\Concerns\BelongsToUser;
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable $occurred_on
  * @property CarbonImmutable|null $due_on
  * @property ExpenseNature|null $nature
+ * @property SpendingType|null $spending_type
  * @property string $concept
  * @property string|null $notes
  * @property CarbonImmutable|null $voided_at
@@ -64,6 +66,7 @@ class Transaction extends Model
             'kind' => TransactionKind::class,
             'status' => TransactionStatus::class,
             'nature' => ExpenseNature::class,
+            'spending_type' => SpendingType::class,
             'amount' => 'integer',
             'occurred_on' => 'immutable_date',
             'due_on' => 'immutable_date',

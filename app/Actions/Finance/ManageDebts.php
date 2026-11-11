@@ -29,10 +29,12 @@ use Illuminate\Validation\ValidationException;
 class ManageDebts
 {
     /**
-     * @param  array{creditor: string, concept: string, principal: int, started_on: string, installment: int|null, frequency: Frequency|null, next_due_on: string|null, interest_rate: string|null, notes: string|null, disbursement_account: Account|null}  $data
+     * @param  array{creditor: string|null, concept: string, principal: int, paid_before?: int, started_on: string, installment: int|null, frequency: Frequency|null, next_due_on: string|null, interest_rate: string|null, notes: string|null, disbursement_account: Account|null}  $data
      */
     public function create(User $user, array $data): Debt
     {
+        $this->guardPaidBefore($data['principal'], $data['paid_before'] ?? 0);
+
         if ($data['disbursement_account']?->isArchived()) {
             throw ValidationException::withMessages(['disbursement_account_id' => 'La cuenta está archivada.']);
         }
@@ -42,6 +44,11 @@ class ManageDebts
                 ...collect($data)->except('disbursement_account')->all(),
                 'currency' => $user->currency,
             ]);
+            // Si ya estaba pagada del todo, nace saldada.
+            if ($debt->principal - $debt->paid_before <= 0) {
+                $debt->settled_at = now();
+                $debt->next_due_on = null;
+            }
             $debt->user()->associate($user);
             $debt->save();
 
@@ -54,7 +61,7 @@ class ManageDebts
                     'amount' => $debt->principal,
                     'currency' => $debt->currency,
                     'occurred_on' => $debt->started_on->toDateString(),
-                    'concept' => "Préstamo recibido · {$debt->creditor}",
+                    'concept' => 'Préstamo recibido · '.($debt->creditor ?: $debt->concept),
                 ]);
                 $movement->user()->associate($user);
                 $movement->save();
@@ -65,10 +72,12 @@ class ManageDebts
     }
 
     /**
-     * @param  array{creditor: string, concept: string, principal: int, started_on: string, installment: int|null, frequency: Frequency|null, next_due_on: string|null, interest_rate: string|null, notes: string|null}  $data
+     * @param  array{creditor: string|null, concept: string, principal: int, paid_before?: int, started_on: string, installment: int|null, frequency: Frequency|null, next_due_on: string|null, interest_rate: string|null, notes: string|null}  $data
      */
     public function update(Debt $debt, array $data): void
     {
+        $this->guardPaidBefore($data['principal'], ($data['paid_before'] ?? $debt->paid_before) + $debt->repaidPrincipal());
+
         $hasPayments = $debt->payments()->whereNull('voided_at')->exists();
 
         if ($hasPayments && $data['principal'] !== $debt->principal) {
@@ -79,6 +88,14 @@ class ManageDebts
 
         DB::transaction(function () use ($debt, $data) {
             $debt->update($data);
+
+            // Al corregir lo ya pagado puede quedar saldada (o dejar de estarlo).
+            $debt->refresh();
+            if ($debt->outstanding() === 0 && ! $debt->isSettled()) {
+                $debt->update(['settled_at' => now(), 'next_due_on' => null]);
+            } elseif ($debt->outstanding() > 0 && $debt->isSettled()) {
+                $debt->update(['settled_at' => null]);
+            }
 
             // El dinero recibido acompaña al capital inicial.
             $debt->disbursements()->whereNull('voided_at')->update([
@@ -145,10 +162,10 @@ class ManageDebts
 
             $movements = [];
             if ($data['principal'] > 0) {
-                $movements[] = [TransactionKind::DebtOut, $data['principal'], null, "Pago a {$locked->creditor} · capital"];
+                $movements[] = [TransactionKind::DebtOut, $data['principal'], null, $locked->concept.' · cuota'];
             }
             if ($charges > 0) {
-                $movements[] = [TransactionKind::Expense, $charges, $data['category']?->id, "Pago a {$locked->creditor} · intereses y comisiones"];
+                $movements[] = [TransactionKind::Expense, $charges, $data['category']?->id, $locked->concept.' · intereses y comisiones'];
             }
 
             foreach ($movements as [$kind, $amount, $categoryId, $concept]) {
@@ -181,6 +198,15 @@ class ManageDebts
 
             return $payment;
         });
+    }
+
+    private function guardPaidBefore(int $principal, int $paid): void
+    {
+        if ($paid > $principal) {
+            throw ValidationException::withMessages([
+                'paid_before' => 'Lo ya pagado no puede ser mayor que lo que debías en total.',
+            ]);
+        }
     }
 
     /**

@@ -145,7 +145,7 @@ class FinancialInsights
     {
         $currency = (string) $user->currency;
         $last = $user->today()->startOfMonth();
-        $debts = Debt::query()->ownedBy($user)->get(['id', 'principal', 'started_on']);
+        $debts = Debt::query()->ownedBy($user)->get(['id', 'principal', 'paid_before', 'started_on']);
 
         if ($debts->isEmpty()) {
             return [];
@@ -164,7 +164,7 @@ class FinancialInsights
 
             $rows[] = [
                 'month' => $end->format('Y-m'),
-                'outstanding' => Money::toDecimal(max(0, (int) $started->sum('principal') - $repaid), $currency),
+                'outstanding' => Money::toDecimal(max(0, (int) $started->sum('principal') - (int) $started->sum('paid_before') - $repaid), $currency),
             ];
         }
 

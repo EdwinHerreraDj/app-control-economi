@@ -36,8 +36,7 @@ class OnboardingController extends Controller
             $request->validated('locale'),
         );
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => '¡Todo listo! Ya puedes empezar a organizar tus cuentas.']);
-
-        return redirect()->route('dashboard');
+        // Siguiente paso: cuatro preguntas sencillas sobre su dinero.
+        return redirect()->route('setup.show');
     }
 }

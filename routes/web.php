@@ -18,8 +18,12 @@ use App\Http\Controllers\Finance\StatisticsController;
 use App\Http\Controllers\Finance\TransactionController;
 use App\Http\Controllers\Finance\TransferController;
 use App\Http\Controllers\ManifestController;
+use App\Http\Controllers\MonthController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PaymentsController;
+use App\Http\Controllers\QuickAddController;
 use App\Http\Controllers\ServiceWorkerController;
+use App\Http\Controllers\SetupController;
 use App\Http\Controllers\SyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -62,6 +66,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+    // Experiencia sencilla: mis pagos, mis meses, primera configuración y
+    // datos de los formularios rápidos.
+    Route::get('payments', PaymentsController::class)->name('payments.index');
+    Route::get('months', MonthController::class)->name('months.index');
+    Route::get('quick-add', QuickAddController::class)->name('quick-add.data');
+    Route::get('setup', [SetupController::class, 'show'])->name('setup.show');
+    Route::post('setup/money', [SetupController::class, 'money'])->name('setup.money');
+    Route::post('setup/incomes', [SetupController::class, 'incomes'])->name('setup.incomes');
+    Route::post('setup/payments', [SetupController::class, 'payments'])->name('setup.payments');
+    Route::post('setup/debts', [SetupController::class, 'debts'])->name('setup.debts');
+    Route::post('setup/finish', [SetupController::class, 'finish'])->name('setup.finish');
     Route::get('statistics', StatisticsController::class)->name('statistics');
 
     // Finanzas personales. Los modelos se resuelven solo entre los del
@@ -83,6 +99,7 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::put('transactions/{transaction}', [TransactionController::class, 'update'])->name('transactions.update');
     Route::post('transactions/{transaction}/confirm', [TransactionController::class, 'confirm'])->name('transactions.confirm');
     Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])->name('transactions.void');
+    Route::delete('transactions/{transaction}', [TransactionController::class, 'destroy'])->name('transactions.destroy');
 
     Route::post('transfers', [TransferController::class, 'store'])->name('transfers.store');
     Route::put('transfers/{transfer}', [TransferController::class, 'update'])->name('transfers.update');

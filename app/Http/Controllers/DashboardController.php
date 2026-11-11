@@ -2,86 +2,51 @@
 
 namespace App\Http\Controllers;
 
-use App\Finance\BudgetReport;
+use App\Enums\CategoryKind;
 use App\Finance\FinancialInsights;
 use App\Finance\LiquidityForecast;
-use App\Finance\UpcomingCommitments;
+use App\Finance\MoneyOverview;
+use App\Finance\Notices;
 use App\Mascots\MascotCompanion;
-use App\Models\DebtPayment;
-use App\Models\SavingsGoal;
+use App\Models\Category;
 use App\Models\User;
-use App\Support\Money;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Inicio («Mi dinero»): cuánto tengo, cuánto me ha entrado y he gastado este
+ * mes, qué me toca pagar pronto y cuánto debo todavía.
+ */
 class DashboardController extends Controller
 {
     public function __invoke(
         Request $request,
+        MoneyOverview $overview,
+        Notices $notices,
         FinancialInsights $insights,
         LiquidityForecast $forecast,
-        UpcomingCommitments $upcoming,
-        BudgetReport $budgets,
         MascotCompanion $companion,
     ): Response {
         /** @var User $user */
         $user = $request->user();
-        $today = $user->today();
-        $currency = (string) $user->currency;
 
+        // La mascota sigue usando el mismo diagnóstico que antes.
         $projection = $forecast->forUser($user, (int) config('finance.forecast_days', 30));
-        $quality = $insights->dataQuality($user);
-        $months = $insights->monthlyTotals($user, 6);
-        $zero = Money::toDecimal(0, $currency);
-        $current = $months[array_key_last($months)] ?? ['income' => $zero, 'expense' => $zero, 'net' => $zero];
-
-        // Pagos de deuda del mes: capital + intereses + comisiones (una sola vez).
-        $debtPaid = (int) DebtPayment::query()->ownedBy($user)->whereNull('voided_at')
-            ->whereBetween('paid_on', [$today->startOfMonth()->toDateString(), $today->endOfMonth()->toDateString()])
-            ->selectRaw('COALESCE(SUM(principal_amount + interest_amount + fees_amount), 0) AS total')
-            ->value('total');
-
-        $budgetRows = collect($budgets->forMonth($user, $today->format('Y-m'))['rows'])
-            ->where('status', '!=', 'none')
-            ->sortByDesc('percent')
-            ->take(3)
-            ->values();
-
-        $goals = SavingsGoal::query()->ownedBy($user)->whereNull('archived_at')->whereNull('achieved_at')
-            ->withSum('contributions', 'amount')->orderBy('target_date')->take(3)->get()
-            ->map(fn (SavingsGoal $goal) => [
-                'id' => $goal->id,
-                'name' => $goal->name,
-                'icon' => $goal->icon,
-                'color' => $goal->color,
-                'saved' => Money::toDecimal((int) $goal->contributions_sum_amount, $goal->currency),
-                'target_amount' => Money::toDecimal($goal->target_amount, $goal->currency),
-                'percent' => $goal->target_amount > 0
-                    ? min(100, (int) floor((int) $goal->contributions_sum_amount * 100 / $goal->target_amount))
-                    : 0,
-            ]);
-
-        $headline = $insights->headline($user, $projection, $quality);
+        $headline = $insights->headline($user, $projection, $insights->dataQuality($user));
 
         return Inertia::render('dashboard', [
-            'headline' => $headline,
-            // La mascota usa los mismos cálculos que el panel.
+            'overview' => $overview->forUser($user),
+            'notices' => $notices->forUser($user),
             'mascot' => $companion->forDashboard($user, $headline, $projection, $request->session()),
-            'balance' => $projection['real'] ?? Money::toDecimal(0, $currency),
-            'month' => [
-                'income' => $current['income'],
-                'expense' => $current['expense'],
-                'net' => $current['net'],
-                'debt_paid' => Money::toDecimal($debtPaid, $currency),
-            ],
-            'forecast' => $projection !== null ? collect($projection)->except('minor')->all() : null,
-            'savings' => $insights->savingsCapacity($user),
-            'evolution' => $months,
-            'upcoming' => array_slice($upcoming->forUser($user, 14), 0, 6),
-            'budgets' => $budgetRows,
-            'goals' => $goals,
-            'quality' => $quality,
+            // Solo a quien empieza de cero: quien ya tiene cuentas no lo necesita.
+            'needsSetup' => ! $user->hasCompletedSetup() && ! $user->accounts()->exists(),
+            'firstName' => explode(' ', trim($user->name))[0],
+            'today' => $user->today()->toDateString(),
+            'interestCategoryId' => Category::query()->ownedBy($user)
+                ->where('kind', CategoryKind::Expense->value)
+                ->where('name', 'Comisiones e intereses')
+                ->value('id'),
         ]);
     }
 }
