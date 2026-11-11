@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Pagination } from '@/components/pagination';
-import { formatDateTime } from '@/lib/format';
+import { useFormat } from '@/hooks/use-format';
 import { index as auditIndex } from '@/routes/admin/audit';
 import type { Paginated } from '@/types';
 
@@ -33,6 +33,8 @@ function details(entry: AuditEntry): string | null {
 }
 
 export default function AuditIndex({ logs }: { logs: Paginated<AuditEntry> }) {
+    const format = useFormat();
+
     return (
         <>
             <Head title="Auditoría" />
@@ -72,7 +74,7 @@ export default function AuditIndex({ logs }: { logs: Paginated<AuditEntry> }) {
                                     <time
                                         dateTime={entry.created_at ?? undefined}
                                     >
-                                        {formatDateTime(entry.created_at)}
+                                        {format.dateTime(entry.created_at)}
                                     </time>{' '}
                                     · Por {entry.actor}
                                     {entry.ip_address &&

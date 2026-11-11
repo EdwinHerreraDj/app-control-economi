@@ -38,6 +38,14 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            // Formato de importes y fechas del usuario (o por defecto, sin sesión).
+            'preferences' => $request->user()?->preferences() ?? [
+                'currency' => null,
+                'currency_decimals' => null,
+                'number_locale' => 'es-ES',
+                'timezone' => config('app.timezone'),
+                'locale' => app()->getLocale(),
+            ],
             'auth' => [
                 'user' => $request->user(),
                 'can' => [

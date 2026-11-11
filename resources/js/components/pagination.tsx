@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import type { Paginated } from '@/types';
 
 function cleanLabel(label: string): string {
+    // Laravel envía las etiquetas traducidas con entidades HTML («&laquo;»).
     return label
-        .replace('&laquo; Previous', '← Anterior')
-        .replace('Next &raquo;', 'Siguiente →')
+        .replace('&laquo;', '←')
+        .replace('&raquo;', '→')
         .replace(/&[a-z]+;/g, '')
         .trim();
 }

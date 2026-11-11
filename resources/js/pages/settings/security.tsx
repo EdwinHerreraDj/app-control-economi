@@ -17,7 +17,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { formatRelative } from '@/lib/format';
+import { useFormat } from '@/hooks/use-format';
 import { edit } from '@/routes/security';
 
 type Session = {
@@ -147,6 +147,7 @@ export default function Security({ passwordRules, sessions }: Props) {
 }
 
 function SessionRow({ session }: { session: Session }) {
+    const format = useFormat();
     const Icon = session.agent.is_mobile ? Smartphone : Monitor;
 
     return (
@@ -163,7 +164,7 @@ function SessionRow({ session }: { session: Session }) {
                     {session.ip_address ?? 'IP desconocida'} ·{' '}
                     {session.is_current
                         ? 'Activo ahora'
-                        : `Última actividad ${formatRelative(session.last_active)}`}
+                        : `Última actividad ${format.relative(session.last_active)}`}
                 </p>
             </div>
             {session.is_current && (

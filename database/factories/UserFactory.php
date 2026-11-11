@@ -33,7 +33,22 @@ class UserFactory extends Factory
             'role' => UserRole::User,
             'status' => UserStatus::Active,
             'activated_at' => now(),
+            'currency' => 'EUR',
+            'number_locale' => 'es-ES',
+            'timezone' => 'Europe/Madrid',
+            'locale' => 'es',
+            'onboarded_at' => now(),
         ];
+    }
+
+    /** Cuenta activa que todavía no ha hecho la primera configuración. */
+    public function notOnboarded(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'currency' => null,
+            'timezone' => 'UTC',
+            'onboarded_at' => null,
+        ]);
     }
 
     public function unverified(): static
@@ -59,6 +74,8 @@ class UserFactory extends Factory
             'email_verified_at' => null,
             'invited_at' => now(),
             'activated_at' => null,
+            'currency' => null,
+            'onboarded_at' => null,
         ]);
     }
 

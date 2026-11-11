@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\PreferencesController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/sessions', [SecurityController::class, 'destroyOtherSessions'])
         ->middleware('throttle:6,1')
         ->name('sessions.destroy-others');
+
+    Route::get('settings/preferences', [PreferencesController::class, 'edit'])->name('preferences.edit');
+    Route::put('settings/preferences', [PreferencesController::class, 'update'])->name('preferences.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
 });

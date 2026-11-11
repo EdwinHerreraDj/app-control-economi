@@ -22,13 +22,16 @@
         {{-- Inline style to set the HTML background color based on our theme in app.css --}}
         <style>
             html {
-                background-color: oklch(1 0 0);
+                background-color: oklch(0.982 0.004 185);
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: oklch(0.17 0.014 215);
             }
         </style>
+
+        <meta name="theme-color" content="#0f766e">
+        <meta name="color-scheme" content="light dark">
 
         <link rel="icon" href="/favicon.ico" sizes="any">
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -39,7 +42,7 @@
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ config('app.name') }}</title>
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">

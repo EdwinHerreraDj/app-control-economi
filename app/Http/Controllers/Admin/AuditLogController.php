@@ -23,6 +23,7 @@ class AuditLogController extends Controller
         'user.password_reset_link_sent' => 'Enlace de recuperación enviado',
         'user.password_reset' => 'Contraseña restablecida',
         'user.other_sessions_closed' => 'Cierre de sesiones en otros dispositivos',
+        'user.currency_changed' => 'Cambio de moneda principal',
     ];
 
     public function index(): Response

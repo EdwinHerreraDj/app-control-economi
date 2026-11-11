@@ -46,7 +46,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { formatDateTime } from '@/lib/format';
+import { useFormat } from '@/hooks/use-format';
 import { index as usersIndex } from '@/routes/admin/users';
 import type { Paginated, UserRole, UserStatus } from '@/types';
 
@@ -101,6 +101,7 @@ function postAction(url: string) {
 }
 
 export default function UsersIndex({ users, filters, roles, statuses }: Props) {
+    const format = useFormat();
     const [dialog, setDialog] = useState<DialogState>(null);
     const roleLabel = (role: UserRole) =>
         roles.find((r) => r.value === role)?.label ?? role;
@@ -186,8 +187,8 @@ export default function UsersIndex({ users, filters, roles, statuses }: Props) {
                                     </p>
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         {user.status === 'pending'
-                                            ? `Invitado el ${formatDateTime(user.invited_at)}`
-                                            : `Alta el ${formatDateTime(user.created_at)}`}
+                                            ? `Invitado el ${format.dateTime(user.invited_at)}`
+                                            : `Alta el ${format.dateTime(user.created_at)}`}
                                     </p>
                                 </div>
 

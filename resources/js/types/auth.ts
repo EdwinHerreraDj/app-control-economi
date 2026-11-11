@@ -10,6 +10,8 @@ export type User = {
     role: UserRole;
     status: UserStatus;
     email_verified_at: string | null;
+    currency: string | null;
+    onboarded_at: string | null;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

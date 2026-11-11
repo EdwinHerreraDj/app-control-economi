@@ -10,10 +10,22 @@ export default function AppSidebarLayout({
 }: AppLayoutProps) {
     return (
         <AppShell variant="sidebar">
+            <a
+                href="#contenido"
+                className="sr-only z-50 rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+            >
+                Saltar al contenido
+            </a>
             <AppSidebar />
             <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                {children}
+                <div
+                    id="contenido"
+                    tabIndex={-1}
+                    className="flex flex-1 flex-col outline-none"
+                >
+                    {children}
+                </div>
             </AppContent>
         </AppShell>
     );

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
 // La aplicación es privada: la raíz lleva al panel (o al login si no hay sesión).
@@ -16,10 +17,15 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('welcome', [OnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('welcome', [OnboardingController::class, 'store'])->name('onboarding.store');
+});
+
+Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 
-Route::middleware(['auth', 'verified', 'can:administer'])
+Route::middleware(['auth', 'verified', 'onboarded', 'can:administer'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
