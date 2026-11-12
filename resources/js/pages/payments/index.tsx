@@ -2,7 +2,6 @@ import { Head } from '@inertiajs/react';
 import {
     CalendarClock,
     CircleCheck,
-    HandCoins,
     MoreHorizontal,
     Pause,
     Pencil,
@@ -47,6 +46,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { useFormat } from '@/hooks/use-format';
 import { quickAction } from '@/lib/actions';
 import { cn } from '@/lib/utils';
+import { fromMinor, toMinor } from '@/offline/money';
 import { index as paymentsIndex } from '@/routes/payments';
 import type { AccountOption, CategoryOption } from '@/types/finance';
 
@@ -87,43 +87,30 @@ type Props = {
     today: string;
 };
 
-type Tab = 'pagar' | 'habituales' | 'deudas';
+type Tab = 'gastos' | 'ingresos' | 'deudas';
 
 type Sheet =
-    | { type: 'rule'; kind: 'income' | 'expense'; rule: Rule | null }
+    | {
+          type: 'rule';
+          kind: 'income' | 'expense';
+          rule: Rule | null;
+          categoryId: number | null;
+      }
     | { type: 'debt'; debt: Debt | null }
     | { type: 'delete-rule'; rule: Rule }
     | { type: 'skip'; item: Pending }
     | null;
 
-function Section({
-    title,
-    description,
-    action,
-    children,
-}: {
-    title: string;
-    description?: string;
-    action?: React.ReactNode;
-    children: React.ReactNode;
-}) {
-    return (
-        <section className="space-y-3">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-                <div>
-                    <h2 className="text-lg font-semibold">{title}</h2>
-                    {description && (
-                        <p className="text-sm text-muted-foreground">
-                            {description}
-                        </p>
-                    )}
-                </div>
-                {action}
-            </div>
-            {children}
-        </section>
-    );
-}
+/** Veces al mes de cada frecuencia (numerador, denominador). */
+const PER_MONTH: Record<string, [number, number]> = {
+    weekly: [52, 12],
+    biweekly: [26, 12],
+    monthly: [1, 1],
+    bimonthly: [1, 2],
+    quarterly: [1, 3],
+    semiannual: [1, 6],
+    yearly: [1, 12],
+};
 
 function Empty({ children }: { children: React.ReactNode }) {
     return (
@@ -136,11 +123,12 @@ function Empty({ children }: { children: React.ReactNode }) {
 export default function Payments(props: Props) {
     const { upcoming, rules, debts, owed, accounts, today } = props;
     const format = useFormat();
+    const decimals = format.preferences.currency_decimals ?? 2;
     const initialTab: Tab =
         typeof window !== 'undefined' &&
         new URLSearchParams(window.location.search).get('ver') === 'deudas'
             ? 'deudas'
-            : 'pagar';
+            : 'gastos';
     const [tab, setTab] = useState<Tab>(initialTab);
     const [sheet, setSheet] = useState<Sheet>(null);
     const [paying, setPaying] = useState<PendingItem | null>(null);
@@ -149,28 +137,8 @@ export default function Payments(props: Props) {
         null,
     );
 
-    const toPay = [
-        ...upcoming.payments.map((item) => ({
-            ...item,
-            type: 'payment' as const,
-        })),
-        ...upcoming.installments.map((item) => ({
-            ...item,
-            type: 'installment' as const,
-            category: null,
-        })),
-    ].sort((a, b) => a.date.localeCompare(b.date));
-
-    const expenseRules = rules.filter((rule) => rule.kind === 'expense');
-    const incomeRules = rules.filter((rule) => rule.kind === 'income');
     const activeDebts = debts.filter((debt) => !debt.settled);
     const finishedDebts = debts.filter((debt) => debt.settled);
-
-    const tabs: [Tab, string][] = [
-        ['pagar', 'Por pagar'],
-        ['habituales', 'Cada mes'],
-        ['deudas', 'Lo que debo'],
-    ];
 
     const date = (value: string, overdue: boolean) =>
         overdue
@@ -179,85 +147,317 @@ export default function Payments(props: Props) {
               ? 'Hoy'
               : format.day(value);
 
-    const ruleRow = (rule: Rule) => (
-        <li
-            key={rule.id}
-            className={cn(
-                'flex items-center gap-3 p-4',
-                rule.paused && 'opacity-60',
-            )}
-        >
-            <CategoryIcon
-                icon={rule.category.icon}
-                color={rule.category.color}
-            />
-            <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{rule.concept}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                    {rule.frequency_label}
-                    {rule.next_on &&
-                        ` · el próximo, ${format.day(rule.next_on)}`}
-                    {rule.nature === 'variable' && ' · importe variable'}
-                </p>
-            </div>
-            <div className="text-right">
-                <p className="font-semibold tabular-nums">
-                    {rule.nature === 'variable' && '≈ '}
-                    {format.money(rule.amount)}
-                </p>
-                {rule.paused && <Badge variant="outline">En pausa</Badge>}
-            </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Opciones de ${rule.concept}`}
-                    >
-                        <MoreHorizontal aria-hidden="true" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                        onSelect={() =>
-                            setSheet({ type: 'rule', kind: rule.kind, rule })
-                        }
-                    >
-                        <Pencil aria-hidden="true" />
-                        Cambiar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onSelect={() =>
-                            quickAction(
-                                rule.paused
-                                    ? RecurringRuleController.resume.url(
-                                          rule.id,
-                                      )
-                                    : RecurringRuleController.pause.url(
-                                          rule.id,
-                                      ),
-                            )
-                        }
-                    >
-                        {rule.paused ? (
-                            <Play aria-hidden="true" />
-                        ) : (
-                            <Pause aria-hidden="true" />
-                        )}
-                        {rule.paused ? 'Reanudar' : 'Pausar un tiempo'}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={() => setSheet({ type: 'delete-rule', rule })}
-                    >
-                        <Trash2 aria-hidden="true" />
-                        Ya no lo pago
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </li>
-    );
+    // Lo que suponen al mes (una semana son 52/12 veces al mes…).
+    const perMonth = (list: Rule[]) =>
+        fromMinor(
+            list
+                .filter((rule) => !rule.paused)
+                .reduce((sum, rule) => {
+                    const [num, den] = PER_MONTH[rule.frequency] ?? [1, 1];
+
+                    return (
+                        sum +
+                        Math.round((toMinor(rule.amount, decimals) * num) / den)
+                    );
+                }, 0),
+            decimals,
+        );
+
+    const tabs: [Tab, string][] = [
+        ['gastos', 'Gastos fijos'],
+        ['ingresos', 'Ingresos fijos'],
+        ['deudas', 'Lo que debo'],
+    ];
+
+    /** Gastos fijos o ingresos fijos: misma estructura, distinto color. */
+    const recurring = (kind: 'expense' | 'income') => {
+        const isExpense = kind === 'expense';
+        const list = rules.filter((rule) => rule.kind === kind);
+        const pending = isExpense ? upcoming.payments : upcoming.incomes;
+        const tone = isExpense ? 'text-expense' : 'text-income';
+        const categories = props.categories.filter(
+            (c) => c.kind === kind && !c.archived,
+        );
+
+        return (
+            <>
+                <section
+                    className={cn(
+                        'rounded-3xl p-5',
+                        isExpense ? 'bg-expense-soft' : 'bg-income-soft',
+                    )}
+                >
+                    <h2 className="text-lg font-semibold">
+                        {isExpense
+                            ? 'Lo que pagas mes a mes'
+                            : 'Lo que recibes mes a mes'}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {isExpense
+                            ? 'El alquiler, la luz, internet, el gimnasio… Apúntalos una vez y te avisaremos cuando toque. Nada se descuenta hasta que pulses «Ya lo pagué».'
+                            : 'Tu nómina, una pensión u otro cobro que llega cada mes, más o menos en la misma fecha. No se suma a tu dinero hasta que confirmes que ha llegado.'}
+                    </p>
+                    {list.length > 0 && (
+                        <p className="mt-3 text-sm">
+                            {isExpense
+                                ? 'Al mes pagas unos '
+                                : 'Al mes recibes unos '}
+                            <span
+                                className={cn(
+                                    'text-2xl font-semibold tabular-nums',
+                                    tone,
+                                )}
+                            >
+                                {format.money(perMonth(list) as `${number}`)}
+                            </span>
+                        </p>
+                    )}
+                </section>
+
+                {pending.length > 0 && (
+                    <section className="space-y-3">
+                        <h2 className="font-semibold">
+                            {isExpense ? 'Te toca pagar' : 'Te toca cobrar'}
+                        </h2>
+                        <ul className="divide-y rounded-2xl border bg-card shadow-xs">
+                            {pending.map((item) => (
+                                <li key={item.id} className="grid gap-3 p-4">
+                                    <div className="flex items-center gap-3">
+                                        <CalendarClock
+                                            className={cn(
+                                                'size-5 shrink-0',
+                                                item.overdue
+                                                    ? 'text-warning'
+                                                    : 'text-muted-foreground',
+                                            )}
+                                            aria-hidden="true"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium">
+                                                {item.concept}
+                                            </p>
+                                            <p
+                                                className={cn(
+                                                    'text-xs first-letter:uppercase',
+                                                    item.overdue
+                                                        ? 'font-medium text-warning'
+                                                        : 'text-muted-foreground',
+                                                )}
+                                            >
+                                                {date(item.date, item.overdue)}
+                                            </p>
+                                        </div>
+                                        <span
+                                            className={cn(
+                                                'shrink-0 font-semibold tabular-nums',
+                                                tone,
+                                            )}
+                                        >
+                                            {format.money(item.amount)}
+                                        </span>
+                                    </div>
+                                    {/* Botones debajo: el nombre tiene todo el ancho. */}
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-9"
+                                            onClick={() =>
+                                                setSheet({
+                                                    type: 'skip',
+                                                    item,
+                                                })
+                                            }
+                                        >
+                                            Este no
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            className="h-9"
+                                            onClick={() =>
+                                                isExpense
+                                                    ? setPaying(item)
+                                                    : setCollecting(item)
+                                            }
+                                        >
+                                            <CircleCheck aria-hidden="true" />
+                                            {isExpense
+                                                ? 'Ya lo pagué'
+                                                : 'Ya lo cobré'}
+                                        </Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
+
+                <section className="space-y-3">
+                    <h2 className="font-semibold">
+                        {isExpense
+                            ? '¿Qué pagas todos los meses? Toca para añadirlo'
+                            : '¿Qué cobras todos los meses? Toca para añadirlo'}
+                    </h2>
+                    <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+                        {categories.map((category) => (
+                            <li key={category.id}>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setSheet({
+                                            type: 'rule',
+                                            kind,
+                                            rule: null,
+                                            categoryId: category.id,
+                                        })
+                                    }
+                                    className="flex h-full min-h-20 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border bg-card p-2 text-center shadow-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:scale-[0.98]"
+                                >
+                                    <CategoryIcon
+                                        icon={category.icon}
+                                        color={category.color}
+                                    />
+                                    <span className="line-clamp-2 text-xs leading-tight font-medium">
+                                        {category.name}
+                                    </span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+
+                <section className="space-y-3">
+                    <h2 className="font-semibold">
+                        {isExpense ? 'Tus gastos fijos' : 'Tus ingresos fijos'}
+                    </h2>
+                    {list.length === 0 ? (
+                        <Empty>
+                            {isExpense
+                                ? 'Aún no has apuntado ningún gasto fijo.'
+                                : 'Si cobras una nómina, apúntala y te recordaremos cuándo llega.'}
+                        </Empty>
+                    ) : (
+                        <ul className="divide-y rounded-2xl border bg-card shadow-xs">
+                            {list.map((rule) => (
+                                <li
+                                    key={rule.id}
+                                    className={cn(
+                                        'flex items-center gap-3 p-4',
+                                        rule.paused && 'opacity-60',
+                                    )}
+                                >
+                                    <CategoryIcon
+                                        icon={rule.category.icon}
+                                        color={rule.category.color}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="min-w-0 flex-1 text-left"
+                                        onClick={() =>
+                                            setSheet({
+                                                type: 'rule',
+                                                kind,
+                                                rule,
+                                                categoryId: null,
+                                            })
+                                        }
+                                    >
+                                        <span className="block truncate font-medium">
+                                            {rule.concept}
+                                        </span>
+                                        <span className="block truncate text-xs text-muted-foreground">
+                                            {rule.frequency_label}
+                                            {rule.next_on &&
+                                                ` · el próximo, ${format.day(rule.next_on)}`}
+                                        </span>
+                                    </button>
+                                    <div className="text-right">
+                                        <p
+                                            className={cn(
+                                                'font-semibold tabular-nums',
+                                                tone,
+                                            )}
+                                        >
+                                            {rule.nature === 'variable' && '≈ '}
+                                            {format.money(rule.amount)}
+                                        </p>
+                                        {rule.paused && (
+                                            <Badge variant="outline">
+                                                En pausa
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={`Opciones de ${rule.concept}`}
+                                            >
+                                                <MoreHorizontal aria-hidden="true" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    setSheet({
+                                                        type: 'rule',
+                                                        kind,
+                                                        rule,
+                                                        categoryId: null,
+                                                    })
+                                                }
+                                            >
+                                                <Pencil aria-hidden="true" />
+                                                Cambiar
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onSelect={() =>
+                                                    quickAction(
+                                                        rule.paused
+                                                            ? RecurringRuleController.resume.url(
+                                                                  rule.id,
+                                                              )
+                                                            : RecurringRuleController.pause.url(
+                                                                  rule.id,
+                                                              ),
+                                                    )
+                                                }
+                                            >
+                                                {rule.paused ? (
+                                                    <Play aria-hidden="true" />
+                                                ) : (
+                                                    <Pause aria-hidden="true" />
+                                                )}
+                                                {rule.paused
+                                                    ? 'Reanudar'
+                                                    : 'Pausar un tiempo'}
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                variant="destructive"
+                                                onSelect={() =>
+                                                    setSheet({
+                                                        type: 'delete-rule',
+                                                        rule,
+                                                    })
+                                                }
+                                            >
+                                                <Trash2 aria-hidden="true" />
+                                                {isExpense
+                                                    ? 'Ya no lo pago'
+                                                    : 'Ya no lo cobro'}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            </>
+        );
+    };
 
     return (
         <>
@@ -267,14 +467,14 @@ export default function Payments(props: Props) {
                 <header>
                     <h1 className="text-2xl font-semibold">Mis pagos</h1>
                     <p className="text-sm text-muted-foreground">
-                        Lo que te toca pagar, lo de cada mes y lo que debes.
+                        Lo que se repite cada mes y lo que debes.
                     </p>
                 </header>
 
                 <div
                     role="tablist"
                     aria-label="Secciones de mis pagos"
-                    className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1"
+                    className="grid grid-cols-3 gap-1 rounded-2xl bg-muted p-1"
                 >
                     {tabs.map(([key, label]) => (
                         <button
@@ -284,7 +484,7 @@ export default function Payments(props: Props) {
                             aria-selected={tab === key}
                             onClick={() => setTab(key)}
                             className={cn(
-                                'min-h-10 rounded-lg px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                'min-h-11 rounded-xl px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
                                 tab === key
                                     ? 'bg-background shadow-xs'
                                     : 'text-muted-foreground',
@@ -295,226 +495,30 @@ export default function Payments(props: Props) {
                     ))}
                 </div>
 
-                {tab === 'pagar' && (
-                    <>
-                        <Section
-                            title="¿Cuándo te toca pagar?"
-                            description="Los próximos 30 días. Nada se descuenta hasta que pulses «Ya lo pagué»."
-                        >
-                            {toPay.length === 0 ? (
-                                <Empty>
-                                    No tienes pagos pendientes. Apunta en «Cada
-                                    mes» lo que pagas habitualmente.
-                                </Empty>
-                            ) : (
-                                <ul className="divide-y rounded-2xl border bg-card">
-                                    {toPay.map((item) => (
-                                        <li
-                                            key={`${item.type}-${item.id}`}
-                                            className="flex items-center gap-3 p-4"
-                                        >
-                                            {item.category ? (
-                                                <CategoryIcon
-                                                    icon={item.category.icon}
-                                                    color={item.category.color}
-                                                />
-                                            ) : (
-                                                <span
-                                                    className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-secondary"
-                                                    aria-hidden="true"
-                                                >
-                                                    <HandCoins className="size-4.5" />
-                                                </span>
-                                            )}
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium">
-                                                    {item.concept}
-                                                </p>
-                                                <p
-                                                    className={cn(
-                                                        'text-xs first-letter:uppercase',
-                                                        item.overdue
-                                                            ? 'text-destructive'
-                                                            : 'text-muted-foreground',
-                                                    )}
-                                                >
-                                                    {date(
-                                                        item.date,
-                                                        item.overdue,
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1.5">
-                                                <span className="font-semibold tabular-nums">
-                                                    {format.money(item.amount)}
-                                                </span>
-                                                <div className="flex gap-1">
-                                                    {item.type ===
-                                                        'payment' && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="h-8 px-2 text-xs"
-                                                            onClick={() =>
-                                                                setSheet({
-                                                                    type: 'skip',
-                                                                    item,
-                                                                })
-                                                            }
-                                                        >
-                                                            Este no
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-8"
-                                                        onClick={() =>
-                                                            item.type ===
-                                                            'payment'
-                                                                ? setPaying(
-                                                                      item,
-                                                                  )
-                                                                : setInstallment(
-                                                                      item,
-                                                                  )
-                                                        }
-                                                    >
-                                                        <CircleCheck aria-hidden="true" />
-                                                        {item.type === 'payment'
-                                                            ? 'Ya lo pagué'
-                                                            : 'Pagué la cuota'}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </Section>
-
-                        {upcoming.incomes.length > 0 && (
-                            <Section
-                                title="Lo que esperas cobrar"
-                                description="No suma a tu dinero hasta que confirmes que ha llegado."
-                            >
-                                <ul className="divide-y rounded-2xl border bg-card">
-                                    {upcoming.incomes.map((item) => (
-                                        <li
-                                            key={item.id}
-                                            className="flex items-center gap-3 p-4"
-                                        >
-                                            <CalendarClock
-                                                className="size-5 shrink-0 text-primary"
-                                                aria-hidden="true"
-                                            />
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate font-medium">
-                                                    {item.concept}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground first-letter:uppercase">
-                                                    {date(
-                                                        item.date,
-                                                        item.overdue,
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1.5">
-                                                <span className="font-semibold text-income tabular-nums">
-                                                    +{' '}
-                                                    {format.money(item.amount)}
-                                                </span>
-                                                <Button
-                                                    size="sm"
-                                                    className="h-8"
-                                                    onClick={() =>
-                                                        setCollecting(item)
-                                                    }
-                                                >
-                                                    Ya lo cobré
-                                                </Button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </Section>
-                        )}
-                    </>
-                )}
-
-                {tab === 'habituales' && (
-                    <>
-                        <Section
-                            title="¿Qué pagas todos los meses?"
-                            description="El alquiler, la luz, el móvil, las suscripciones…"
-                            action={
-                                <Button
-                                    onClick={() =>
-                                        setSheet({
-                                            type: 'rule',
-                                            kind: 'expense',
-                                            rule: null,
-                                        })
-                                    }
-                                >
-                                    <Plus aria-hidden="true" />
-                                    Añadir un pago
-                                </Button>
-                            }
-                        >
-                            {expenseRules.length === 0 ? (
-                                <Empty>
-                                    Aún no has apuntado ningún pago habitual.
-                                </Empty>
-                            ) : (
-                                <ul className="divide-y rounded-2xl border bg-card">
-                                    {expenseRules.map(ruleRow)}
-                                </ul>
-                            )}
-                        </Section>
-
-                        <Section
-                            title="¿Cuánto cobras?"
-                            description="Tu sueldo u otros ingresos que se repiten."
-                            action={
-                                <Button
-                                    variant="secondary"
-                                    onClick={() =>
-                                        setSheet({
-                                            type: 'rule',
-                                            kind: 'income',
-                                            rule: null,
-                                        })
-                                    }
-                                >
-                                    <Plus aria-hidden="true" />
-                                    Añadir un cobro
-                                </Button>
-                            }
-                        >
-                            {incomeRules.length === 0 ? (
-                                <Empty>
-                                    Si cobras un sueldo, apúntalo y te
-                                    recordaremos cuándo llega.
-                                </Empty>
-                            ) : (
-                                <ul className="divide-y rounded-2xl border bg-card">
-                                    {incomeRules.map(ruleRow)}
-                                </ul>
-                            )}
-                        </Section>
-                    </>
-                )}
+                {tab === 'gastos' && recurring('expense')}
+                {tab === 'ingresos' && recurring('income')}
 
                 {tab === 'deudas' && (
-                    <Section
-                        title="Lo que debo"
-                        description={
-                            activeDebts.length > 0
-                                ? `En total te falta por pagar ${format.money(owed)}.`
-                                : undefined
-                        }
-                        action={
+                    <>
+                        <section className="rounded-3xl bg-savings-soft p-5">
+                            <h2 className="text-lg font-semibold">
+                                Lo que debo
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Un préstamo, algo comprado a plazos o dinero que
+                                te dejaron. Apuntarla no cuenta como gasto: solo
+                                cuentan los pagos que hagas.
+                            </p>
+                            {activeDebts.length > 0 && (
+                                <p className="mt-3 text-sm">
+                                    En total te falta por pagar{' '}
+                                    <span className="text-2xl font-semibold text-savings tabular-nums">
+                                        {format.money(owed)}
+                                    </span>
+                                </p>
+                            )}
                             <Button
+                                className="mt-4"
                                 onClick={() =>
                                     setSheet({ type: 'debt', debt: null })
                                 }
@@ -522,14 +526,10 @@ export default function Payments(props: Props) {
                                 <Plus aria-hidden="true" />
                                 Apuntar una deuda
                             </Button>
-                        }
-                    >
+                        </section>
+
                         {debts.length === 0 ? (
-                            <Empty>
-                                ¿Debes dinero? Un préstamo, algo a plazos o
-                                dinero de un amigo: apúntalo y verás cuánto te
-                                falta.
-                            </Empty>
+                            <Empty>No tienes deudas apuntadas.</Empty>
                         ) : (
                             <ul className="grid gap-3">
                                 {[...activeDebts, ...finishedDebts].map(
@@ -537,7 +537,7 @@ export default function Payments(props: Props) {
                                         <li
                                             key={debt.id}
                                             className={cn(
-                                                'rounded-2xl border bg-card p-5',
+                                                'rounded-2xl border bg-card p-5 shadow-xs',
                                                 debt.settled && 'opacity-70',
                                             )}
                                         >
@@ -553,7 +553,9 @@ export default function Payments(props: Props) {
                                                     )}
                                                 </div>
                                                 {debt.settled ? (
-                                                    <Badge>¡Terminada!</Badge>
+                                                    <Badge className="bg-income-soft text-income">
+                                                        ¡Terminada!
+                                                    </Badge>
                                                 ) : (
                                                     <Button
                                                         variant="ghost"
@@ -586,7 +588,7 @@ export default function Payments(props: Props) {
                                                     <dt className="text-muted-foreground">
                                                         Has pagado
                                                     </dt>
-                                                    <dd className="font-medium tabular-nums">
+                                                    <dd className="font-medium text-income tabular-nums">
                                                         {format.money(
                                                             debt.paid,
                                                         )}
@@ -596,7 +598,7 @@ export default function Payments(props: Props) {
                                                     <dt className="text-muted-foreground">
                                                         Te falta
                                                     </dt>
-                                                    <dd className="font-semibold tabular-nums">
+                                                    <dd className="font-semibold text-expense tabular-nums">
                                                         {format.money(
                                                             debt.outstanding,
                                                         )}
@@ -648,7 +650,7 @@ export default function Payments(props: Props) {
                                 )}
                             </ul>
                         )}
-                    </Section>
+                    </>
                 )}
             </div>
 
@@ -656,11 +658,19 @@ export default function Payments(props: Props) {
                 open={sheet !== null}
                 onOpenChange={(open) => !open && setSheet(null)}
             >
-                <DialogContent>
+                <DialogContent
+                    // El foco va al panel: si fuera a la primera casilla,
+                    // parecería elegida.
+                    onOpenAutoFocus={(event) => {
+                        event.preventDefault();
+                        (event.currentTarget as HTMLElement).focus();
+                    }}
+                >
                     {sheet?.type === 'rule' && (
                         <RuleForm
                             kind={sheet.kind}
                             rule={sheet.rule}
+                            presetCategoryId={sheet.categoryId}
                             accounts={accounts.filter((a) => !a.savings)}
                             categories={props.categories}
                             frequencies={props.frequencies}
@@ -678,11 +688,11 @@ export default function Payments(props: Props) {
                     {sheet?.type === 'delete-rule' && (
                         <>
                             <DialogTitle>
-                                ¿Ya no pagas «{sheet.rule.concept}»?
+                                ¿Quitar «{sheet.rule.concept}»?
                             </DialogTitle>
                             <DialogDescription>
-                                Dejará de aparecer en tus próximos pagos. Lo que
-                                ya pagaste se queda en tu historial. Si solo es
+                                Dejará de aparecer cada mes. Lo que ya marcaste
+                                como hecho se queda en tu historial. Si solo es
                                 por un tiempo, mejor ponlo en pausa.
                             </DialogDescription>
                             <DialogFooter className="gap-2">
@@ -711,7 +721,7 @@ export default function Payments(props: Props) {
                     {sheet?.type === 'skip' && (
                         <>
                             <DialogTitle>
-                                ¿Este mes no pagas «{sheet.item.concept}»?
+                                ¿Esta vez no toca «{sheet.item.concept}»?
                             </DialogTitle>
                             <DialogDescription>
                                 Quitaremos solo el del{' '}
@@ -735,7 +745,7 @@ export default function Payments(props: Props) {
                                         setSheet(null);
                                     }}
                                 >
-                                    Quitar este pago
+                                    Quitar solo este
                                 </Button>
                             </DialogFooter>
                         </>

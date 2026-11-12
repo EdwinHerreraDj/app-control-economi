@@ -1,8 +1,10 @@
 import { Form } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import RecurringRuleController from '@/actions/App/Http/Controllers/Finance/RecurringRuleController';
 import AmountInput from '@/components/finance/amount-input';
 import { MoreOptions } from '@/components/finance/more-options';
+import { CategoryIcon } from '@/components/finance/category-badge';
 import { RecurrenceSummary } from '@/components/finance/recurrence-summary';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -19,6 +21,8 @@ import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/hooks/use-format';
 import { normalizeAmountFields } from '@/lib/amount';
 import type { FrequencyValue } from '@/lib/recurrence';
+import { cn } from '@/lib/utils';
+import { index as categoriesIndex } from '@/routes/categories';
 import type { AccountOption, CategoryOption } from '@/types/finance';
 
 /** Pago o cobro que se repite (alquiler, nómina, suscripciones…). */
@@ -43,6 +47,8 @@ type RuleFormProps = {
     frequencies: { value: string; label: string }[];
     today: string;
     onDone: () => void;
+    /** Categoría ya elegida al tocar su icono en «Mis pagos». */
+    presetCategoryId?: number | null;
 };
 
 /**
@@ -57,6 +63,7 @@ export function RuleForm({
     frequencies,
     today,
     onDone,
+    presetCategoryId = null,
 }: RuleFormProps) {
     const format = useFormat();
     const isExpense = kind === 'expense';
@@ -75,6 +82,12 @@ export function RuleForm({
         (c) => c.kind === kind && (!c.archived || c.id === rule?.category.id),
     );
     const noun = isExpense ? 'pago' : 'cobro';
+    const [categoryId, setCategoryId] = useState<number | undefined>(
+        rule?.category.id ??
+            categoryOptions.find((c) => c.id === presetCategoryId)?.id ??
+            categoryOptions[0]?.id,
+    );
+    const category = categoryOptions.find((c) => c.id === categoryId);
 
     if (accountOptions.length === 0) {
         return (
@@ -94,13 +107,18 @@ export function RuleForm({
     return (
         <Form
             {...form}
-            transform={(data) =>
-                normalizeAmountFields(
+            transform={(data) => ({
+                ...normalizeAmountFields(
                     data,
                     ['amount'],
                     format.preferences.number_locale,
-                )
-            }
+                ),
+                // Sin nombre, se llama como su categoría («Vivienda»).
+                concept:
+                    (typeof data.concept === 'string' && data.concept.trim()) ||
+                    category?.name ||
+                    '',
+            })}
             options={{ preserveScroll: true }}
             onSuccess={onDone}
             className="space-y-5"
@@ -124,16 +142,71 @@ export function RuleForm({
 
                     {!rule && <input type="hidden" name="kind" value={kind} />}
 
+                    <fieldset className="grid gap-2">
+                        <legend className="mb-1 text-sm font-medium">
+                            ¿Qué es?
+                        </legend>
+                        <input
+                            type="hidden"
+                            name="category_id"
+                            value={categoryId ?? ''}
+                        />
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                            {categoryOptions.map((c) => {
+                                const active = c.id === categoryId;
+
+                                return (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        aria-pressed={active}
+                                        onClick={() => setCategoryId(c.id)}
+                                        className={cn(
+                                            'flex min-h-20 min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl border p-2 text-center text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                            active
+                                                ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                                                : 'bg-card hover:bg-muted',
+                                        )}
+                                    >
+                                        <CategoryIcon
+                                            icon={c.icon}
+                                            color={c.color}
+                                        />
+                                        <span className="line-clamp-2 leading-tight break-words">
+                                            {c.name}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                            <a
+                                href={categoriesIndex().url}
+                                className="flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed p-2 text-center text-xs font-medium text-muted-foreground hover:bg-muted"
+                            >
+                                <Plus className="size-5" aria-hidden="true" />
+                                Otra categoría
+                            </a>
+                        </div>
+                        <InputError message={errors.category_id} />
+                    </fieldset>
+
                     <div className="grid gap-2">
-                        <Label htmlFor="rule-concept">¿Qué es?</Label>
+                        <Label htmlFor="rule-concept">
+                            Nombre{' '}
+                            <span className="font-normal text-muted-foreground">
+                                (opcional)
+                            </span>
+                        </Label>
                         <Input
                             id="rule-concept"
                             name="concept"
                             defaultValue={rule?.concept}
                             placeholder={
-                                isExpense ? 'Ej.: Alquiler' : 'Ej.: Nómina'
+                                category
+                                    ? `Si no escribes nada: «${category.name}»`
+                                    : isExpense
+                                      ? 'Ej.: Alquiler'
+                                      : 'Ej.: Nómina'
                             }
-                            required
                             maxLength={255}
                             autoComplete="off"
                         />
@@ -195,23 +268,6 @@ export function RuleForm({
                                 calcula a partir de ella.
                             </p>
                             <InputError message={errors.starts_on} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="rule-category">Categoría</Label>
-                            <NativeSelect
-                                id="rule-category"
-                                name="category_id"
-                                defaultValue={
-                                    rule?.category.id ?? categoryOptions[0]?.id
-                                }
-                            >
-                                {categoryOptions.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                            <InputError message={errors.category_id} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="rule-account">

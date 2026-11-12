@@ -56,7 +56,7 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           // Base: contenido desplazable dentro del propio diálogo.
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed z-50 grid w-full gap-4 overflow-y-auto overscroll-contain border p-6 shadow-lg duration-200 scrollbar-thin",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed z-50 grid w-full gap-4 overflow-x-hidden overflow-y-auto overscroll-contain [&>*]:min-w-0 border p-6 shadow-lg duration-200 scrollbar-thin",
           // Móvil: panel que sube desde abajo y ocupa casi toda la pantalla,
           // como en las apps nativas (sin una caja pequeña con su propio scroll).
           "max-sm:inset-x-0 max-sm:bottom-[var(--keyboard-inset,0px)] max-sm:max-h-[calc(var(--visual-height,100svh)-env(safe-area-inset-top)-0.75rem)] max-sm:rounded-t-3xl max-sm:transition-[bottom] max-sm:duration-150 max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:data-[state=closed]:slide-out-to-bottom max-sm:data-[state=open]:slide-in-from-bottom",

@@ -29,6 +29,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard, statistics } from '@/routes';
 import { index as accountsIndex } from '@/routes/accounts';
@@ -78,6 +79,7 @@ const adminNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth } = usePage().props;
+    const { setOpenMobile } = useSidebar();
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -85,7 +87,11 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link
+                                href={dashboard()}
+                                prefetch
+                                onClick={() => setOpenMobile(false)}
+                            >
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -94,7 +100,10 @@ export function AppSidebar() {
                         <SidebarMenuButton
                             size="lg"
                             tooltip="Apuntar"
-                            onClick={() => openQuick('menu')}
+                            onClick={() => {
+                                setOpenMobile(false);
+                                openQuick('menu');
+                            }}
                             className="mt-2 bg-primary font-medium text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                         >
                             <Plus aria-hidden="true" />
@@ -105,7 +114,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain label="Mi dinero" items={mainNavItems} />
+                <NavMain label="Mi dinero" items={mainNavItems} eager />
                 <NavMain label="Más" items={moreNavItems} />
                 {auth.can.administer && (
                     <NavMain label="Administración" items={adminNavItems} />

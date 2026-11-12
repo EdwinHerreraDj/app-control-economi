@@ -197,6 +197,29 @@
         @apply border-border outline-ring/50;
     }
 
+    /* Los campos nunca ensanchan su contenedor (en una rejilla, un campo de
+       fecha en iPhone podía desbordar el panel y moverlo hacia los lados). */
+    input,
+    select,
+    textarea {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+        input[type='date'] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-height: 2.5rem;
+        }
+    }
+
+    /* Letra un poco más grande que la habitual (17 px): se lee mejor en el
+       móvil. Todo se mide en rem, así que crece de forma proporcional. */
+    html {
+        font-size: 106.25%;
+    }
+
     body {
         @apply bg-background text-foreground;
     }

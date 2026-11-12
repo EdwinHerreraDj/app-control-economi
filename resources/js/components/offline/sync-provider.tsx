@@ -17,6 +17,9 @@ import {
     syncNow,
     useSyncState,
 } from '@/offline/sync';
+import { mainNavItems } from '@/components/app-sidebar';
+import { EAGER_PREFETCH } from '@/components/nav-main';
+import { toUrl } from '@/lib/utils';
 import { logout } from '@/routes';
 
 /** Tiempo mínimo entre sincronizaciones automáticas. */
@@ -115,6 +118,16 @@ export function SyncProvider() {
         let timer: number | undefined;
         const offFinish = router.on('finish', (event) => {
             if (event.detail.visit.method !== 'get') {
+                // Tras guardar algo, las páginas precargadas se vuelven a pedir
+                // para que nunca se vean datos anteriores al cambio.
+                router.flushAll();
+                mainNavItems.forEach((item) =>
+                    router.prefetch(
+                        toUrl(item.href),
+                        { method: 'get' },
+                        { cacheFor: EAGER_PREFETCH.cacheFor },
+                    ),
+                );
                 window.clearTimeout(timer);
                 // Ya agrupado por el temporizador: actualiza la copia local.
                 timer = window.setTimeout(() => void syncNow(), 1500);
