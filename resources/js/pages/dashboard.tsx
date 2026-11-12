@@ -9,6 +9,7 @@ import {
     Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
+import { CategoryIcon } from '@/components/finance/category-badge';
 import { MascotCompanion } from '@/components/mascot/mascot-companion';
 import { PendingSyncNotice } from '@/components/offline/pending-sync-notice';
 import {
@@ -59,6 +60,22 @@ type Props = {
             installments: InstallmentItem[];
         };
         debts: { owed: string; count: number };
+        next_month: {
+            month: string;
+            payments: string;
+            installments: string;
+            total: string;
+            incomes: string;
+            free: string;
+            items: {
+                key: string;
+                type: 'payment' | 'installment';
+                concept: string;
+                amount: string;
+                date: string | null;
+                category: { icon: string; color: string } | null;
+            }[];
+        };
         month_outlook: {
             spent: string;
             debt_paid: string;
@@ -97,6 +114,151 @@ function Card({
         >
             {children}
         </section>
+    );
+}
+
+/**
+ * «El mes que viene»: lo que tendrás que pagar (pagos fijos y cuotas de
+ * deudas, que también son pagos de cada mes) y lo que esperas cobrar.
+ */
+function NextMonthCard({
+    next,
+    locale,
+}: {
+    next: Props['overview']['next_month'];
+    locale: string;
+}) {
+    const format = useFormat();
+    const [open, setOpen] = useState(false);
+    const free = Number(next.free);
+    const shown = open ? next.items : next.items.slice(0, 4);
+
+    return (
+        <Card>
+            <h2 className="text-sm font-medium text-muted-foreground first-letter:uppercase">
+                En {monthName(next.month, locale)} tendrás que pagar
+            </h2>
+            <p className="mt-1 text-3xl font-semibold tracking-tight text-expense tabular-nums">
+                {format.money(next.total)}
+            </p>
+
+            <dl className="mt-3 grid gap-1.5 text-sm">
+                <div className="flex justify-between gap-3">
+                    <dt>Pagos fijos</dt>
+                    <dd className="font-medium tabular-nums">
+                        {format.money(next.payments)}
+                    </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                    <dt>Cuotas de deudas</dt>
+                    <dd className="font-medium tabular-nums">
+                        {format.money(next.installments)}
+                    </dd>
+                </div>
+                {Number(next.incomes) > 0 && (
+                    <>
+                        <div className="flex justify-between gap-3">
+                            <dt>Esperas cobrar</dt>
+                            <dd className="font-medium text-income tabular-nums">
+                                + {format.money(next.incomes)}
+                            </dd>
+                        </div>
+                        <div
+                            className={cn(
+                                'mt-1 flex justify-between gap-3 rounded-xl px-3 py-2',
+                                free >= 0
+                                    ? 'bg-income-soft'
+                                    : 'bg-warning-soft',
+                            )}
+                        >
+                            <dt className="font-medium">
+                                {free >= 0
+                                    ? 'Te quedarían libres'
+                                    : 'Te faltarían'}
+                            </dt>
+                            <dd
+                                className={cn(
+                                    'font-semibold tabular-nums',
+                                    free >= 0 ? 'text-income' : 'text-warning',
+                                )}
+                            >
+                                {format.money(next.free.replace('-', ''))}
+                            </dd>
+                        </div>
+                    </>
+                )}
+            </dl>
+
+            {next.items.length === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">
+                    No tienes pagos fijos ni cuotas apuntados para ese mes.{' '}
+                    <Link
+                        href={paymentsIndex()}
+                        className="text-primary underline-offset-4 hover:underline"
+                    >
+                        Apúntalos en Mis pagos
+                    </Link>
+                    .
+                </p>
+            ) : (
+                <>
+                    <ul className="mt-4 divide-y border-t">
+                        {shown.map((item) => (
+                            <li
+                                key={item.key}
+                                className="flex items-center gap-3 py-2.5 text-sm"
+                            >
+                                {item.category ? (
+                                    <CategoryIcon
+                                        icon={item.category.icon}
+                                        color={item.category.color}
+                                    />
+                                ) : (
+                                    <span
+                                        className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-savings-soft text-savings"
+                                        aria-hidden="true"
+                                    >
+                                        <HandCoins className="size-4.5" />
+                                    </span>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-medium">
+                                        {item.concept}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground first-letter:uppercase">
+                                        {item.type === 'installment'
+                                            ? 'Cuota · '
+                                            : ''}
+                                        {item.date
+                                            ? format.day(item.date)
+                                            : 'sin día fijo'}
+                                    </p>
+                                </div>
+                                <span className="font-semibold tabular-nums">
+                                    {format.money(item.amount)}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                    {next.items.length > 4 && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-1 w-full"
+                            onClick={() => setOpen((value) => !value)}
+                        >
+                            {open
+                                ? 'Ver menos'
+                                : `Ver los ${next.items.length} pagos`}
+                        </Button>
+                    )}
+                </>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+                Es una previsión con tus pagos fijos y tus deudas: aún no ha
+                salido nada de tu dinero.
+            </p>
+        </Card>
     );
 }
 
@@ -399,6 +561,12 @@ export default function Dashboard({
                         dinero. Lo que gastes a partir de hoy se irá sumando.
                     </p>
                 </Card>
+
+                {/* El mes que viene: todo lo que habrá que pagar. */}
+                <NextMonthCard
+                    next={overview.next_month}
+                    locale={format.preferences.number_locale}
+                />
 
                 {/* 4. ¿Qué tengo que pagar próximamente? */}
                 <Card>

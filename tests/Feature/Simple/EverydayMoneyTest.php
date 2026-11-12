@@ -420,3 +420,65 @@ test('the home shows the expected spending until the end of the month', function
         // Lo previsto no se descuenta del dinero disponible.
         ->and(overview()['available'])->toBe('490.00');
 });
+
+test('the home shows everything to pay next month, debts included', function () {
+    $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '1000']);
+    $this->post(route('setup.incomes'), ['items' => [
+        ['concept' => 'Sueldo', 'amount' => '1400', 'frequency' => 'monthly', 'next_on' => '2026-11-28'],
+    ]]);
+    $this->post(route('setup.payments'), ['items' => [
+        ['concept' => 'Alquiler', 'amount' => '450', 'frequency' => 'monthly', 'next_on' => '2026-11-30'],
+    ]]);
+    $this->post(route('setup.debts'), ['items' => [
+        // Cuota de noviembre y la siguiente, en diciembre.
+        ['concept' => 'Portátil', 'total' => '300', 'installment' => '50', 'frequency' => 'monthly', 'next_due_on' => '2026-11-15'],
+        // Solo le quedan 30 € tras la cuota de noviembre: la de diciembre es de 30.
+        ['concept' => 'Móvil', 'total' => '100', 'installment' => '70', 'frequency' => 'monthly', 'next_due_on' => '2026-11-20'],
+    ]]);
+
+    $next = overview()['next_month'];
+
+    expect($next['month'])->toBe('2026-12')
+        ->and($next['payments'])->toBe('450.00')
+        ->and($next['installments'])->toBe('80.00')
+        ->and($next['total'])->toBe('530.00')
+        ->and($next['incomes'])->toBe('1400.00')
+        ->and($next['free'])->toBe('870.00')
+        ->and(collect($next['items'])->pluck('concept')->all())->toBe(['Portátil', 'Móvil', 'Alquiler']);
+
+    // Este mes también cuentan las cuotas de noviembre.
+    expect(overview()['month_outlook']['pending_installments'])->toBe('120.00');
+});
+
+test('a debt with an installment but no date counts every month until it is paid', function () {
+    $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '1000']);
+    $this->post(route('setup.debts'), ['items' => [
+        ['concept' => 'Préstamo de Juan', 'total' => '200', 'installment' => '40'],
+    ]]);
+
+    expect(overview()['month_outlook']['pending_installments'])->toBe('40.00')
+        ->and(overview()['next_month']['installments'])->toBe('40.00')
+        ->and(overview()['next_month']['items'][0]['date'])->toBeNull();
+
+    // Pagada la de este mes, ya no queda pendiente en noviembre.
+    $debt = Debt::query()->sole();
+    $this->post(route('debts.payments.store', $debt), [
+        'uuid' => (string) Str::uuid(), 'account_id' => Account::query()->value('id'),
+        'paid_on' => '2026-11-11', 'principal' => '40', 'advances_schedule' => true,
+    ])->assertSessionHasNoErrors();
+
+    expect(overview()['month_outlook']['pending_installments'])->toBe('0.00')
+        ->and(overview()['next_month']['installments'])->toBe('40.00');
+});
+
+test('weekly installments count as many times as they fall in the month', function () {
+    $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '1000']);
+    $this->post(route('setup.debts'), ['items' => [
+        ['concept' => 'Tele', 'total' => '1000', 'installment' => '10', 'frequency' => 'weekly', 'next_due_on' => '2026-11-12'],
+    ]]);
+
+    // Diciembre de 2026: jueves 3, 10, 17, 24 y 31.
+    expect(overview()['next_month']['installments'])->toBe('50.00')
+        ->and(collect(overview()['next_month']['items'])->pluck('date')->all())
+        ->toBe(['2026-12-03', '2026-12-10', '2026-12-17', '2026-12-24', '2026-12-31']);
+});
