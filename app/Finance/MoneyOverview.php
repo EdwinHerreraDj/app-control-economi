@@ -8,6 +8,7 @@ use App\Enums\TransactionStatus;
 use App\Models\Account;
 use App\Models\Debt;
 use App\Models\DebtPayment;
+use App\Models\RecurringRule;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Support\Money;
@@ -117,7 +118,9 @@ class MoneyOverview
                 'pending_installments' => $money($pendingInstallments),
                 'total' => $money($month['spent'] + $month['debt_paid'] + $expectedOut),
             ],
-            'next_month' => $this->nextMonth($user, $monthStart->addMonthNoOverflow()),
+            // Previsión pensada en el día de cobro: lo que hay que cubrir hasta
+            // la próxima nómina y lo que tendrá que cubrir esa nómina.
+            ...$this->payCycleForecast($user, $available),
             'end_of_month' => [
                 'expected_in' => $money($expectedIn),
                 'expected_out' => $money($expectedOut),
@@ -226,12 +229,10 @@ class MoneyOverview
      *
      * @return array<string, mixed>
      */
-    public function nextMonth(User $user, CarbonImmutable $month): array
+    public function period(User $user, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $currency = (string) $user->currency;
         $money = fn (int $minor) => Money::toDecimal($minor, $currency);
-        $from = $month->startOfMonth();
-        $to = $month->endOfMonth();
 
         $planned = fn (TransactionKind $kind) => Transaction::query()->ownedBy($user)
             ->where('kind', $kind->value)
@@ -245,7 +246,7 @@ class MoneyOverview
 
         $payments = $planned(TransactionKind::Expense);
         $incomes = $planned(TransactionKind::Income);
-        // Las cuotas que vencen antes de ese mes ya se habrán pagado.
+        // Las cuotas que vencen antes del periodo ya se habrán pagado.
         $installments = $this->debtSchedule($user, $from, $to, false);
 
         $paymentsTotal = (int) $payments->sum('amount');
@@ -275,7 +276,8 @@ class MoneyOverview
         usort($items, fn (array $a, array $b) => ($a['date'] ?? '9999') <=> ($b['date'] ?? '9999'));
 
         return [
-            'month' => $from->format('Y-m'),
+            'start' => $from->toDateString(),
+            'end' => $to->toDateString(),
             'payments' => $money($paymentsTotal),
             'installments' => $money($installmentsTotal),
             'total' => $money($paymentsTotal + $installmentsTotal),
@@ -360,5 +362,94 @@ class MoneyOverview
         }
 
         return $items;
+    }
+
+    /**
+     * Día de cobro de referencia: el ingreso fijo principal (el de mayor
+     * importe, normalmente la nómina) y el periodo que tiene que cubrir.
+     *
+     * Si llega a principios de mes (hasta el día 10), cubre el mes entero
+     * desde el día 1: los pagos de esos primeros días salen de esa nómina. Si
+     * llega más tarde, cubre desde ese día hasta el siguiente cobro. Sin
+     * ingreso fijo, se usa el mes natural siguiente.
+     *
+     * @return array{payday: CarbonImmutable|null, income: string|null, amount: int|null, start: CarbonImmutable, end: CarbonImmutable}
+     */
+    public function payCycle(User $user): array
+    {
+        $today = $user->today();
+        $rule = RecurringRule::query()->ownedBy($user)
+            ->where('kind', TransactionKind::Income->value)
+            ->whereNull('paused_at')
+            ->orderByDesc('amount')
+            ->first();
+        $payday = $rule?->nextOccurrence($today);
+
+        if ($rule === null || $payday === null) {
+            $start = $today->startOfMonth()->addMonthNoOverflow();
+
+            return ['payday' => null, 'income' => null, 'amount' => null, 'start' => $start, 'end' => $start->endOfMonth()];
+        }
+
+        if ($payday->day <= 10) {
+            $start = $payday->startOfMonth();
+            $end = $start->endOfMonth();
+        } else {
+            $start = $payday;
+            $end = $rule->frequency->nextAfter($rule->starts_on, $payday)->subDay();
+        }
+
+        return ['payday' => $payday, 'income' => $rule->concept, 'amount' => $rule->amount, 'start' => $start, 'end' => $end];
+    }
+
+    /**
+     * Lo que queda por cubrir hasta la próxima nómina con el dinero de hoy,
+     * y lo que tendrá que cubrir esa nómina. Todo son previsiones.
+     *
+     * @return array{until_payday: array<string, mixed>|null, next_cycle: array<string, mixed>}
+     */
+    public function payCycleForecast(User $user, int $available): array
+    {
+        $currency = (string) $user->currency;
+        $money = fn (int $minor) => Money::toDecimal($minor, $currency);
+        $today = $user->today();
+        $cycle = $this->payCycle($user);
+        $inProgress = $cycle['start']->lessThanOrEqualTo($today);
+
+        $untilPayday = null;
+
+        if (! $inProgress) {
+            $last = $cycle['start']->subDay();
+            $pending = fn (TransactionKind $kind) => (int) Transaction::query()->ownedBy($user)
+                ->where('kind', $kind->value)
+                ->where('status', TransactionStatus::Planned->value)
+                ->whereNull('voided_at')
+                // Lo atrasado también hay que cubrirlo con el dinero de hoy.
+                ->where('occurred_on', '<', $cycle['start']->toDateString())
+                ->sum('amount');
+            $payments = $pending(TransactionKind::Expense);
+            $incomes = $pending(TransactionKind::Income);
+            $installments = array_sum(array_column($this->debtSchedule($user, $today, $last, true), 'minor'));
+            $toPay = $payments + $installments;
+
+            $untilPayday = [
+                'until' => $last->toDateString(),
+                'payments' => $money($payments),
+                'installments' => $money($installments),
+                'to_pay' => $money($toPay),
+                'incomes' => $money($incomes),
+                'left' => $money($available + $incomes - $toPay),
+            ];
+        }
+
+        return [
+            'until_payday' => $untilPayday,
+            'next_cycle' => [
+                ...$this->period($user, $cycle['start'], $cycle['end']),
+                'payday' => $cycle['payday']?->toDateString(),
+                'income' => $cycle['income'],
+                'in_progress' => $inProgress,
+            ],
+        ];
     }
 }

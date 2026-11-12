@@ -3,6 +3,7 @@ import {
     AlertCircle,
     ArrowRight,
     CalendarClock,
+    CircleCheck,
     HandCoins,
     Info,
     PiggyBank,
@@ -25,6 +26,7 @@ import { openQuick } from '@/components/quick/quick-store';
 import { Button } from '@/components/ui/button';
 import { useFormat } from '@/hooks/use-format';
 import { cn } from '@/lib/utils';
+import { fromMinor, toMinor } from '@/offline/money';
 import { dashboard } from '@/routes';
 import { index as monthsIndex } from '@/routes/months';
 import { index as paymentsIndex } from '@/routes/payments';
@@ -60,8 +62,20 @@ type Props = {
             installments: InstallmentItem[];
         };
         debts: { owed: string; count: number };
-        next_month: {
-            month: string;
+        until_payday: {
+            until: string;
+            payments: string;
+            installments: string;
+            to_pay: string;
+            incomes: string;
+            left: string;
+        } | null;
+        next_cycle: {
+            start: string;
+            end: string;
+            payday: string | null;
+            income: string | null;
+            in_progress: boolean;
             payments: string;
             installments: string;
             total: string;
@@ -117,29 +131,171 @@ function Card({
     );
 }
 
+function shortDate(date: string, locale: string): string {
+    const [y, m, d] = date.split('-').map(Number);
+
+    return new Intl.DateTimeFormat(locale, {
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+    }).format(new Date(Date.UTC(y, m - 1, d)));
+}
+
 /**
- * «El mes que viene»: lo que tendrás que pagar (pagos fijos y cuotas de
- * deudas, que también son pagos de cada mes) y lo que esperas cobrar.
+ * «Hasta tu próxima nómina»: lo que aún hay que pagar con el dinero de hoy
+ * antes de cobrar, y lo que quedaría. Es una previsión.
+ */
+function UntilPaydayCard({
+    until,
+    income,
+    payday,
+    locale,
+}: {
+    until: NonNullable<Props['overview']['until_payday']>;
+    income: string | null;
+    payday: string | null;
+    locale: string;
+}) {
+    const format = useFormat();
+    const left = Number(until.left);
+
+    return (
+        <Card>
+            <h2 className="text-sm font-medium text-muted-foreground">
+                {payday && income
+                    ? `Hasta que cobres tu ${income.toLowerCase()} (el ${shortDate(payday, locale)})`
+                    : `Hasta el ${shortDate(until.until, locale)}`}
+            </h2>
+            <p className="mt-1 text-sm">
+                Aún te toca pagar{' '}
+                <span className="font-semibold text-expense tabular-nums">
+                    {format.money(until.to_pay)}
+                </span>
+                {Number(until.installments) > 0 &&
+                    ` (${format.money(until.installments)} son cuotas de deudas)`}
+                .
+            </p>
+            <div
+                className={cn(
+                    'mt-3 rounded-xl px-3 py-2.5',
+                    left >= 0 ? 'bg-income-soft' : 'bg-warning-soft',
+                )}
+            >
+                <p className="text-sm text-muted-foreground">
+                    {left >= 0
+                        ? 'Con lo que tienes ahora te quedarían'
+                        : 'Con lo que tienes ahora te faltarían'}
+                </p>
+                <p
+                    className={cn(
+                        'text-2xl font-semibold tabular-nums',
+                        left >= 0 ? 'text-income' : 'text-warning',
+                    )}
+                >
+                    {format.money(until.left.replace('-', ''))}
+                </p>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+                Es una previsión: cuenta tus pagos fijos y cuotas pendientes
+                hasta entonces, no los gastos sueltos.
+            </p>
+        </Card>
+    );
+}
+
+/**
+ * Lo que tendrá que cubrir la próxima nómina: pagos fijos y cuotas de
+ * deudas (también son pagos de cada mes), lo que entra y lo que queda.
+ * Si la nómina llega a principios de mes, cubre el mes entero desde el día 1.
  */
 function NextMonthCard({
     next,
     locale,
+    carryOver,
 }: {
-    next: Props['overview']['next_month'];
+    next: Props['overview']['next_cycle'];
     locale: string;
+    /** Lo que quedaría del dinero de hoy al llegar la nómina. */
+    carryOver: string | null;
 }) {
     const format = useFormat();
     const [open, setOpen] = useState(false);
     const free = Number(next.free);
     const shown = open ? next.items : next.items.slice(0, 4);
+    const month = monthName(next.start.slice(0, 7), locale);
+
+    // Veredicto: ¿el ingreso fijo alcanza para los pagos y cuotas? (céntimos
+    // enteros, sin decimales flotantes).
+    const decimals = format.preferences.currency_decimals ?? 2;
+    const incomeName = (next.income ?? 'ingreso fijo').toLowerCase();
+    const hasIncome = next.payday !== null && Number(next.incomes) > 0;
+    const freeMinor = toMinor(next.free, decimals);
+    const withCarry =
+        carryOver !== null ? toMinor(carryOver, decimals) + freeMinor : null;
+    const money = (minor: number) =>
+        format.money(fromMinor(Math.abs(minor), decimals) as `${number}`);
 
     return (
         <Card>
-            <h2 className="text-sm font-medium text-muted-foreground first-letter:uppercase">
-                En {monthName(next.month, locale)} tendrás que pagar
+            {hasIncome ? (
+                <div
+                    role="status"
+                    className={cn(
+                        'mb-4 flex items-start gap-3 rounded-2xl p-3.5 text-sm font-medium',
+                        freeMinor >= 0
+                            ? 'bg-income-soft text-income'
+                            : 'bg-warning-soft text-warning',
+                    )}
+                >
+                    {freeMinor >= 0 ? (
+                        <CircleCheck
+                            className="mt-0.5 size-5 shrink-0"
+                            aria-hidden="true"
+                        />
+                    ) : (
+                        <AlertCircle
+                            className="mt-0.5 size-5 shrink-0"
+                            aria-hidden="true"
+                        />
+                    )}
+                    <p>
+                        {freeMinor >= 0
+                            ? `Tu ${incomeName} de ${month} (${format.money(next.incomes)}) alcanza para todos tus pagos y cuotas. Te sobrarían ${money(freeMinor)}.`
+                            : `Tu ${incomeName} de ${month} (${format.money(next.incomes)}) no alcanza para tus pagos y cuotas (${format.money(next.total)}): te faltarían ${money(freeMinor)}.`}
+                        {freeMinor < 0 &&
+                            withCarry !== null &&
+                            (withCarry >= 0
+                                ? ` Con lo que te quede antes de cobrar sí llegarías, y te sobrarían ${money(withCarry)}.`
+                                : ` Ni contando lo que te quede antes de cobrar llegarías: faltarían ${money(withCarry)}.`)}
+                    </p>
+                </div>
+            ) : (
+                <p className="mb-4 rounded-2xl bg-info-soft p-3.5 text-sm font-medium text-info">
+                    Si apuntas tu nómina u otro ingreso fijo en{' '}
+                    <Link
+                        href={paymentsIndex()}
+                        className="underline underline-offset-4"
+                    >
+                        Mis pagos
+                    </Link>
+                    , te diremos si te alcanza para tus pagos y cuotas.
+                </p>
+            )}
+
+            <h2 className="text-sm font-medium text-muted-foreground">
+                {next.payday && next.income
+                    ? next.in_progress
+                        ? `Tu ${next.income.toLowerCase()} de ${month} tiene que cubrir`
+                        : `Con tu ${next.income.toLowerCase()} de ${month} tendrás que pagar`
+                    : `En ${month} tendrás que pagar`}
             </h2>
             <p className="mt-1 text-3xl font-semibold tracking-tight text-expense tabular-nums">
                 {format.money(next.total)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+                {next.payday
+                    ? `Del ${shortDate(next.start, locale)} al ${shortDate(next.end, locale)} · la nómina llega el ${shortDate(next.payday, locale)}`
+                    : 'Apunta tu nómina en Mis pagos y la previsión se hará según el día en que cobras.'}
             </p>
 
             <dl className="mt-3 grid gap-1.5 text-sm">
@@ -287,13 +443,7 @@ export default function Dashboard({
         null,
     );
 
-    const {
-        upcoming,
-        month,
-        debts,
-        end_of_month: end,
-        month_outlook: outlook,
-    } = overview;
+    const { upcoming, month, debts, month_outlook: outlook } = overview;
     // Parte ya gastada frente a lo que queda por pagar (para la barra).
     const outlookTotal = Number(outlook.total);
     const outlookDone = Number(outlook.spent) + Number(outlook.debt_paid);
@@ -310,8 +460,6 @@ export default function Dashboard({
             type: 'installment' as const,
         })),
     ].sort((a, b) => a.date.localeCompare(b.date));
-    const hasExpectations =
-        Number(end.expected_in) !== 0 || Number(end.expected_out) !== 0;
     const negative = Number(overview.available) < 0;
     const monthLabel = monthName(month.month, format.preferences.number_locale);
 
@@ -562,10 +710,19 @@ export default function Dashboard({
                     </p>
                 </Card>
 
-                {/* El mes que viene: todo lo que habrá que pagar. */}
+                {/* Previsión según el día de cobro. */}
+                {overview.until_payday && (
+                    <UntilPaydayCard
+                        until={overview.until_payday}
+                        income={overview.next_cycle.income}
+                        payday={overview.next_cycle.payday}
+                        locale={format.preferences.number_locale}
+                    />
+                )}
                 <NextMonthCard
-                    next={overview.next_month}
+                    next={overview.next_cycle}
                     locale={format.preferences.number_locale}
+                    carryOver={overview.until_payday?.left ?? null}
                 />
 
                 {/* 4. ¿Qué tengo que pagar próximamente? */}
@@ -710,23 +867,6 @@ export default function Dashboard({
                                 aria-hidden="true"
                             />
                         </Link>
-                    </Card>
-                )}
-
-                {hasExpectations && (
-                    <Card className="border-savings/30 bg-savings-soft">
-                        <h2 className="text-sm font-medium text-muted-foreground">
-                            Si todo va como esperas, a final de mes te quedarían
-                        </h2>
-                        <p className="text-2xl font-semibold tabular-nums">
-                            {format.money(end.estimate)}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                            Es una estimación, no dinero que tengas ya: suma lo
-                            que esperas cobrar ({format.money(end.expected_in)})
-                            y resta lo que te queda por pagar este mes (
-                            {format.money(end.expected_out)}).
-                        </p>
                     </Card>
                 )}
 

@@ -424,7 +424,8 @@ test('the home shows the expected spending until the end of the month', function
 test('the home shows everything to pay next month, debts included', function () {
     $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '1000']);
     $this->post(route('setup.incomes'), ['items' => [
-        ['concept' => 'Sueldo', 'amount' => '1400', 'frequency' => 'monthly', 'next_on' => '2026-11-28'],
+        // La nómina llega el día 1: cubre el mes entero.
+        ['concept' => 'Sueldo', 'amount' => '1400', 'frequency' => 'monthly', 'next_on' => '2026-12-01'],
     ]]);
     $this->post(route('setup.payments'), ['items' => [
         ['concept' => 'Alquiler', 'amount' => '450', 'frequency' => 'monthly', 'next_on' => '2026-11-30'],
@@ -436,9 +437,12 @@ test('the home shows everything to pay next month, debts included', function () 
         ['concept' => 'Móvil', 'total' => '100', 'installment' => '70', 'frequency' => 'monthly', 'next_due_on' => '2026-11-20'],
     ]]);
 
-    $next = overview()['next_month'];
+    $next = overview()['next_cycle'];
 
-    expect($next['month'])->toBe('2026-12')
+    expect($next['start'])->toBe('2026-12-01')
+        ->and($next['end'])->toBe('2026-12-31')
+        ->and($next['payday'])->toBe('2026-12-01')
+        ->and($next['in_progress'])->toBeFalse()
         ->and($next['payments'])->toBe('450.00')
         ->and($next['installments'])->toBe('80.00')
         ->and($next['total'])->toBe('530.00')
@@ -448,6 +452,12 @@ test('the home shows everything to pay next month, debts included', function () 
 
     // Este mes también cuentan las cuotas de noviembre.
     expect(overview()['month_outlook']['pending_installments'])->toBe('120.00');
+
+    // Hasta la nómina hay que cubrir el alquiler de noviembre y dos cuotas.
+    expect(overview()['until_payday'])->toMatchArray([
+        'until' => '2026-11-30', 'payments' => '450.00', 'installments' => '120.00',
+        'to_pay' => '570.00', 'left' => '430.00',
+    ]);
 });
 
 test('a debt with an installment but no date counts every month until it is paid', function () {
@@ -457,8 +467,8 @@ test('a debt with an installment but no date counts every month until it is paid
     ]]);
 
     expect(overview()['month_outlook']['pending_installments'])->toBe('40.00')
-        ->and(overview()['next_month']['installments'])->toBe('40.00')
-        ->and(overview()['next_month']['items'][0]['date'])->toBeNull();
+        ->and(overview()['next_cycle']['installments'])->toBe('40.00')
+        ->and(overview()['next_cycle']['items'][0]['date'])->toBeNull();
 
     // Pagada la de este mes, ya no queda pendiente en noviembre.
     $debt = Debt::query()->sole();
@@ -468,7 +478,7 @@ test('a debt with an installment but no date counts every month until it is paid
     ])->assertSessionHasNoErrors();
 
     expect(overview()['month_outlook']['pending_installments'])->toBe('0.00')
-        ->and(overview()['next_month']['installments'])->toBe('40.00');
+        ->and(overview()['next_cycle']['installments'])->toBe('40.00');
 });
 
 test('weekly installments count as many times as they fall in the month', function () {
@@ -478,7 +488,41 @@ test('weekly installments count as many times as they fall in the month', functi
     ]]);
 
     // Diciembre de 2026: jueves 3, 10, 17, 24 y 31.
-    expect(overview()['next_month']['installments'])->toBe('50.00')
-        ->and(collect(overview()['next_month']['items'])->pluck('date')->all())
+    expect(overview()['next_cycle']['installments'])->toBe('50.00')
+        ->and(collect(overview()['next_cycle']['items'])->pluck('date')->all())
         ->toBe(['2026-12-03', '2026-12-10', '2026-12-17', '2026-12-24', '2026-12-31']);
+});
+
+test('a salary late in the month covers until the next one', function () {
+    $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '300']);
+    $this->post(route('setup.incomes'), ['items' => [
+        ['concept' => 'Nómina', 'amount' => '1500', 'frequency' => 'monthly', 'next_on' => '2026-11-25'],
+    ]]);
+    $this->post(route('setup.payments'), ['items' => [
+        ['concept' => 'Internet', 'amount' => '30', 'frequency' => 'monthly', 'next_on' => '2026-11-20'],
+        ['concept' => 'Alquiler', 'amount' => '450', 'frequency' => 'monthly', 'next_on' => '2026-12-01'],
+    ]]);
+
+    $summary = overview();
+
+    expect($summary['next_cycle'])->toMatchArray([
+        // Alquiler del 1 de diciembre e internet del 20 de diciembre.
+        'start' => '2026-11-25', 'end' => '2026-12-24', 'incomes' => '1500.00', 'payments' => '480.00',
+    ])
+        ->and($summary['until_payday'])->toMatchArray(['until' => '2026-11-24', 'to_pay' => '30.00', 'left' => '270.00']);
+});
+
+test('between the 1st and payday the current month is the one being covered', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-12-03 10:00:00', 'Europe/Madrid'));
+    $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '100']);
+    $this->post(route('setup.incomes'), ['items' => [
+        ['concept' => 'Nómina', 'amount' => '1400', 'frequency' => 'monthly', 'next_on' => '2026-12-05'],
+    ]]);
+
+    $summary = overview();
+
+    expect($summary['until_payday'])->toBeNull()
+        ->and($summary['next_cycle'])->toMatchArray([
+            'start' => '2026-12-01', 'end' => '2026-12-31', 'in_progress' => true, 'incomes' => '1400.00',
+        ]);
 });

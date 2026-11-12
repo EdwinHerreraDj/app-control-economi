@@ -110,6 +110,8 @@ Responde a cinco preguntas: cuánto tengo para gastar (y, aparte, cuánto tengo 
 
 Se separan siempre el dinero disponible, lo que se espera recibir, los pagos pendientes, las deudas y lo que podría quedar a final de mes. Esa última cifra es una estimación etiquetada como tal: un cobro o pago previsto nunca se suma ni se resta del dinero disponible hasta confirmarlo. Se distinguen también los datos pendientes de sincronizar.
 
+La previsión se organiza según el día de cobro del ingreso fijo principal (normalmente la nómina). Si llega a principios de mes (hasta el día 10), cubre el mes entero desde el día 1, porque la mayoría de pagos se concentran en esos días; si llega más tarde, cubre desde ese día hasta el siguiente cobro. Inicio muestra lo que queda por pagar hasta cobrar (y lo que quedaría del dinero de hoy) y lo que tendrá que cubrir la próxima nómina, con un veredicto claro: si alcanza para todos los pagos y cuotas, cuánto sobraría o cuánto faltaría, y si lo que quede antes de cobrar compensaría la diferencia. Las cuotas de deudas cuentan como pagos de cada mes según su calendario. Sin ingreso fijo, se usa el mes natural y se invita a apuntarlo.
+
 ### Apuntar en segundos
 
 «Gasté dinero» y «Me entró dinero» piden solo cuánto, en qué o de dónde, y cuándo (hoy por defecto). La categoría se sugiere a partir del texto y del historial de la persona, y siempre se puede cambiar. En los gastos se puede indicar opcionalmente si fue algo necesario, un gusto, un pago habitual u otro. Si lo apuntado coincide con un cobro o pago pendiente, se ofrece confirmar ese en lugar de crear otro, para no duplicarlo. Un gasto común debe poder apuntarse en menos de 15 segundos.
