@@ -399,3 +399,24 @@ test('people who already have accounts are not asked to start over', function ()
     $this->actingAs($this->user)->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page->where('needsSetup', false));
 });
+
+test('the home shows the expected spending until the end of the month', function () {
+    $this->actingAs($this->user)->post(route('setup.money'), ['bank' => '500']);
+    $this->post(route('setup.payments'), ['items' => [
+        ['concept' => 'Luz', 'amount' => '60', 'frequency' => 'monthly', 'next_on' => '2026-11-20'],
+        ['concept' => 'Seguro', 'amount' => '200', 'frequency' => 'monthly', 'next_on' => '2026-12-02'], // ya es diciembre
+    ]]);
+    $this->post(route('setup.debts'), ['items' => [
+        ['concept' => 'Portátil', 'total' => '300', 'installment' => '50', 'next_due_on' => '2026-11-25'],
+    ]]);
+    spend(['amount' => '10', 'concept' => 'Café']);
+
+    $outlook = overview()['month_outlook'];
+
+    expect($outlook['spent'])->toBe('10.00')
+        ->and($outlook['pending_payments'])->toBe('60.00')
+        ->and($outlook['pending_installments'])->toBe('50.00')
+        ->and($outlook['total'])->toBe('120.00')
+        // Lo previsto no se descuenta del dinero disponible.
+        ->and(overview()['available'])->toBe('490.00');
+});

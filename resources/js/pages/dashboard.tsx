@@ -59,6 +59,13 @@ type Props = {
             installments: InstallmentItem[];
         };
         debts: { owed: string; count: number };
+        month_outlook: {
+            spent: string;
+            debt_paid: string;
+            pending_payments: string;
+            pending_installments: string;
+            total: string;
+        };
         end_of_month: {
             expected_in: string;
             expected_out: string;
@@ -118,7 +125,18 @@ export default function Dashboard({
         null,
     );
 
-    const { upcoming, month, debts, end_of_month: end } = overview;
+    const {
+        upcoming,
+        month,
+        debts,
+        end_of_month: end,
+        month_outlook: outlook,
+    } = overview;
+    // Parte ya gastada frente a lo que queda por pagar (para la barra).
+    const outlookTotal = Number(outlook.total);
+    const outlookDone = Number(outlook.spent) + Number(outlook.debt_paid);
+    const donePercent =
+        outlookTotal > 0 ? Math.round((outlookDone * 100) / outlookTotal) : 0;
     const spendable = overview.accounts.filter((a) => !a.savings);
     const toPay = [
         ...upcoming.payments.map((item) => ({
@@ -302,6 +320,84 @@ export default function Dashboard({
                             en cuotas de deudas.
                         </p>
                     )}
+                </Card>
+
+                {/* Resumen de los gastos previstos hasta final de mes. */}
+                <Card>
+                    <h2 className="text-sm font-medium text-muted-foreground first-letter:uppercase">
+                        Gastos previstos de {monthLabel}
+                    </h2>
+                    <p className="mt-1 text-3xl font-semibold tracking-tight text-expense tabular-nums">
+                        {format.money(outlook.total)}
+                    </p>
+                    <div
+                        className="mt-3 flex h-3 overflow-hidden rounded-full bg-expense-soft"
+                        role="img"
+                        aria-label={`Llevas el ${donePercent} % gastado; el resto está pendiente de pagar.`}
+                    >
+                        <div
+                            className="h-full rounded-full bg-expense"
+                            style={{ width: `${donePercent}%` }}
+                        />
+                    </div>
+                    <dl className="mt-3 grid gap-1.5 text-sm">
+                        <div className="flex justify-between gap-3">
+                            <dt className="flex items-center gap-2">
+                                <span
+                                    className="size-2.5 rounded-full bg-expense"
+                                    aria-hidden="true"
+                                />
+                                Ya has gastado
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                                {format.money(outlook.spent)}
+                            </dd>
+                        </div>
+                        {Number(outlook.debt_paid) > 0 && (
+                            <div className="flex justify-between gap-3">
+                                <dt className="flex items-center gap-2">
+                                    <span
+                                        className="size-2.5 rounded-full bg-expense"
+                                        aria-hidden="true"
+                                    />
+                                    Cuotas ya pagadas
+                                </dt>
+                                <dd className="font-medium tabular-nums">
+                                    {format.money(outlook.debt_paid)}
+                                </dd>
+                            </div>
+                        )}
+                        <div className="flex justify-between gap-3">
+                            <dt className="flex items-center gap-2">
+                                <span
+                                    className="size-2.5 rounded-full bg-expense-soft ring-1 ring-expense/40"
+                                    aria-hidden="true"
+                                />
+                                Pagos fijos que te quedan
+                            </dt>
+                            <dd className="font-medium tabular-nums">
+                                {format.money(outlook.pending_payments)}
+                            </dd>
+                        </div>
+                        {Number(outlook.pending_installments) > 0 && (
+                            <div className="flex justify-between gap-3">
+                                <dt className="flex items-center gap-2">
+                                    <span
+                                        className="size-2.5 rounded-full bg-expense-soft ring-1 ring-expense/40"
+                                        aria-hidden="true"
+                                    />
+                                    Cuotas que te quedan
+                                </dt>
+                                <dd className="font-medium tabular-nums">
+                                    {format.money(outlook.pending_installments)}
+                                </dd>
+                            </div>
+                        )}
+                    </dl>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                        Es una previsión: lo pendiente aún no ha salido de tu
+                        dinero. Lo que gastes a partir de hoy se irá sumando.
+                    </p>
                 </Card>
 
                 {/* 4. ¿Qué tengo que pagar próximamente? */}

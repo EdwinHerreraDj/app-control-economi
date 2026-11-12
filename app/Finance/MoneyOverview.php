@@ -76,8 +76,9 @@ class MoneyOverview
         // disponible. Solo cuenta lo previsto hasta el último día del mes.
         $inMonth = fn (array $item) => $item['date_minor'] <= $monthEnd->toDateString();
         $expectedIn = array_sum(array_column(array_filter($incomes, $inMonth), 'minor'));
-        $expectedOut = array_sum(array_column(array_filter($payments, $inMonth), 'minor'))
-            + array_sum(array_column(array_filter($installments, $inMonth), 'minor'));
+        $pendingPayments = array_sum(array_column(array_filter($payments, $inMonth), 'minor'));
+        $pendingInstallments = array_sum(array_column(array_filter($installments, $inMonth), 'minor'));
+        $expectedOut = $pendingPayments + $pendingInstallments;
 
         $clean = fn (array $items) => array_map(
             fn (array $item) => array_diff_key($item, ['minor' => true, 'date_minor' => true]),
@@ -103,6 +104,16 @@ class MoneyOverview
             'debts' => [
                 'owed' => $money($owed),
                 'count' => $debts->count(),
+            ],
+            // Gastos del mes: lo ya gastado más lo que queda por pagar hasta
+            // el último día (pagos fijos pendientes y cuotas). Lo pendiente es
+            // una previsión: aún no ha salido de tu dinero.
+            'month_outlook' => [
+                'spent' => $money($month['spent']),
+                'debt_paid' => $money($month['debt_paid']),
+                'pending_payments' => $money($pendingPayments),
+                'pending_installments' => $money($pendingInstallments),
+                'total' => $money($month['spent'] + $month['debt_paid'] + $expectedOut),
             ],
             'end_of_month' => [
                 'expected_in' => $money($expectedIn),
