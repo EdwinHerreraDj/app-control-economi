@@ -417,7 +417,7 @@ export default function Setup(props: Props) {
         <div className="min-h-svh bg-background">
             <Head title="Primeros pasos" />
 
-            <header className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-4">
+            <header className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
                 <AppLogo />
                 {step !== 'resumen' && (
                     <Button

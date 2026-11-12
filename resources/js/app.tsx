@@ -5,6 +5,7 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { trackVisualViewport } from '@/lib/viewport';
 import { setupPwa } from '@/offline/pwa';
 
 // El nombre lo configura el superusuario; la plantilla lo publica en esta meta.
@@ -49,3 +50,6 @@ initializeTheme();
 
 // Service worker, aviso de actualizaciones e instalación de la PWA.
 setupPwa();
+
+// Paneles que suben con el teclado en móvil.
+trackVisualViewport();

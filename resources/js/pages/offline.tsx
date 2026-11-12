@@ -136,7 +136,7 @@ export default function Offline() {
         <div className="min-h-svh bg-background">
             <Head title="Sin conexión" />
 
-            <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+            <header className="sticky top-0 z-10 border-b bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">
                 <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
                     <div className="flex items-center gap-2">
                         <AppLogo />

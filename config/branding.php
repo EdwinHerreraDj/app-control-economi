@@ -16,8 +16,8 @@ return [
     'defaults' => [
         'name' => 'Economía Personal',
         'short_name' => 'Economía',
-        'theme_color' => '#0f766e',
-        'background_color' => '#f6f9f8',
+        'theme_color' => '#4f3ff0',
+        'background_color' => '#f8f7fd',
         'primary_color' => null,
     ],
 

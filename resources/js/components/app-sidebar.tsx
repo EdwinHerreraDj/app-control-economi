@@ -1,6 +1,8 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    ArrowDownToLine,
     ArrowLeftRight,
+    ArrowUpFromLine,
     CalendarCheck,
     CalendarDays,
     ChartColumn,
@@ -36,22 +38,30 @@ import { index as mascotsIndex } from '@/routes/admin/mascots';
 import { index as usersIndex } from '@/routes/admin/users';
 import { index as budgetsIndex } from '@/routes/budgets';
 import { index as categoriesIndex } from '@/routes/categories';
+import { index as expensesIndex } from '@/routes/expenses';
 import { index as goalsIndex } from '@/routes/goals';
+import { index as incomesIndex } from '@/routes/incomes';
 import { index as monthsIndex } from '@/routes/months';
 import { index as paymentsIndex } from '@/routes/payments';
 import { index as transactionsIndex } from '@/routes/transactions';
 import type { NavItem } from '@/types';
 
-/** Lo esencial: cuatro apartados. */
+/** Lo esencial: gastos e ingresos por separado, pagos y meses. */
 export const mainNavItems: NavItem[] = [
     { title: 'Inicio', href: dashboard(), icon: House },
-    { title: 'Movimientos', href: transactionsIndex(), icon: ArrowLeftRight },
+    { title: 'Gastos', href: expensesIndex(), icon: ArrowUpFromLine },
+    { title: 'Ingresos', href: incomesIndex(), icon: ArrowDownToLine },
     { title: 'Mis pagos', href: paymentsIndex(), icon: CalendarCheck },
     { title: 'Mis meses', href: monthsIndex(), icon: CalendarDays },
 ];
 
 /** Herramientas para quien quiera más detalle; no estorban al resto. */
 export const moreNavItems: NavItem[] = [
+    {
+        title: 'Todos los movimientos',
+        href: transactionsIndex(),
+        icon: ArrowLeftRight,
+    },
     { title: 'Mis cuentas', href: accountsIndex(), icon: Landmark },
     { title: 'Categorías', href: categoriesIndex(), icon: Shapes },
     { title: 'Estadísticas', href: statistics(), icon: ChartColumn },

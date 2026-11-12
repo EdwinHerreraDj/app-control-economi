@@ -111,19 +111,19 @@ export default function Months({ summary, previous, next, isCurrent }: Props) {
                 </header>
 
                 <section className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border bg-card p-4">
+                    <div className="rounded-2xl bg-income-soft p-4">
                         <p className="text-sm text-muted-foreground">
                             Te entró
                         </p>
-                        <p className="text-2xl font-semibold tabular-nums">
+                        <p className="text-2xl font-semibold text-income tabular-nums">
                             {format.money(summary.received)}
                         </p>
                     </div>
-                    <div className="rounded-2xl border bg-card p-4">
+                    <div className="rounded-2xl bg-expense-soft p-4">
                         <p className="text-sm text-muted-foreground">
                             Gastaste
                         </p>
-                        <p className="text-2xl font-semibold tabular-nums">
+                        <p className="text-2xl font-semibold text-expense tabular-nums">
                             {format.money(summary.spent)}
                         </p>
                     </div>
@@ -161,7 +161,7 @@ export default function Months({ summary, previous, next, isCurrent }: Props) {
                 <section
                     className={cn(
                         'rounded-2xl p-4',
-                        result >= 0 ? 'bg-primary/10' : 'bg-muted',
+                        result >= 0 ? 'bg-income-soft' : 'bg-expense-soft',
                     )}
                 >
                     <p className="text-sm text-muted-foreground">

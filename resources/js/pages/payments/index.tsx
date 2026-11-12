@@ -419,7 +419,7 @@ export default function Payments(props: Props) {
                                                 </p>
                                             </div>
                                             <div className="flex flex-col items-end gap-1.5">
-                                                <span className="font-semibold text-primary tabular-nums">
+                                                <span className="font-semibold text-income tabular-nums">
                                                     +{' '}
                                                     {format.money(item.amount)}
                                                 </span>

@@ -186,20 +186,15 @@ export default function Dashboard({
                 )}
 
                 {/* 1. ¿Cuánto dinero tengo ahora? */}
-                <Card>
-                    <h2 className="text-sm font-medium text-muted-foreground">
+                <section className="rounded-3xl bg-linear-to-br from-hero-from to-hero-to p-6 text-white shadow-lg shadow-primary/20">
+                    <h2 className="text-sm font-medium text-white/80">
                         Tienes para gastar
                     </h2>
-                    <p
-                        className={cn(
-                            'mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl',
-                            negative && 'text-destructive',
-                        )}
-                    >
+                    <p className="mt-1 text-4xl font-semibold tracking-tight tabular-nums sm:text-5xl">
                         {format.money(overview.available)}
                     </p>
                     {spendable.length > 1 && (
-                        <p className="mt-2 text-sm text-muted-foreground">
+                        <p className="mt-2 text-sm text-white/80">
                             {spendable
                                 .map(
                                     (a) =>
@@ -209,7 +204,7 @@ export default function Dashboard({
                         </p>
                     )}
                     {negative && (
-                        <p className="mt-2 text-sm">
+                        <p className="mt-2 inline-flex rounded-full bg-white/15 px-3 py-1 text-sm">
                             Estás en números rojos: has gastado más de lo que
                             tenías apuntado.
                         </p>
@@ -218,10 +213,10 @@ export default function Dashboard({
                     <button
                         type="button"
                         onClick={() => openQuick('savings')}
-                        className="mt-4 flex w-full items-center gap-3 rounded-xl bg-muted/60 p-3 text-left hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        className="mt-5 flex w-full items-center gap-3 rounded-2xl bg-white/15 p-3 text-left backdrop-blur hover:bg-white/25 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
                     >
                         <PiggyBank
-                            className="size-5 shrink-0 text-primary"
+                            className="size-5 shrink-0"
                             aria-hidden="true"
                         />
                         <span className="flex-1 text-sm">
@@ -236,13 +231,9 @@ export default function Dashboard({
                                 '¿Guardas dinero aparte? Crea tu hucha'
                             )}
                         </span>
-                        <ArrowRight
-                            className="size-4 text-muted-foreground"
-                            aria-hidden="true"
-                        />
+                        <ArrowRight className="size-4" aria-hidden="true" />
                     </button>
-                </Card>
-
+                </section>
                 <QuickButtons />
 
                 {notices.length > 0 && (
@@ -251,9 +242,10 @@ export default function Dashboard({
                             <li
                                 key={notice.text}
                                 className={cn(
-                                    'flex items-start gap-3 rounded-xl border p-3 text-sm',
-                                    notice.tone === 'warning' &&
-                                        'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100',
+                                    'flex items-start gap-3 rounded-2xl p-3.5 text-sm font-medium',
+                                    notice.tone === 'warning'
+                                        ? 'bg-warning-soft text-warning'
+                                        : 'bg-info-soft text-info',
                                 )}
                             >
                                 {notice.tone === 'warning' ? (
@@ -263,7 +255,7 @@ export default function Dashboard({
                                     />
                                 ) : (
                                     <Info
-                                        className="mt-0.5 size-4 shrink-0 text-primary"
+                                        className="mt-0.5 size-4 shrink-0"
                                         aria-hidden="true"
                                     />
                                 )}
@@ -287,19 +279,19 @@ export default function Dashboard({
                         </Link>
                     </div>
                     <dl className="mt-3 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl bg-muted/50 p-3">
+                        <div className="rounded-2xl bg-income-soft p-3">
                             <dt className="text-sm text-muted-foreground">
                                 Te ha entrado
                             </dt>
-                            <dd className="text-xl font-semibold tabular-nums">
+                            <dd className="text-xl font-semibold text-income tabular-nums">
                                 {format.money(month.received)}
                             </dd>
                         </div>
-                        <div className="rounded-xl bg-muted/50 p-3">
+                        <div className="rounded-2xl bg-expense-soft p-3">
                             <dt className="text-sm text-muted-foreground">
                                 Has gastado
                             </dt>
-                            <dd className="text-xl font-semibold tabular-nums">
+                            <dd className="text-xl font-semibold text-expense tabular-nums">
                                 {format.money(month.spent)}
                             </dd>
                         </div>
@@ -413,7 +405,7 @@ export default function Dashboard({
                                             </p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            <span className="font-semibold text-primary tabular-nums">
+                                            <span className="font-semibold text-income tabular-nums">
                                                 + {format.money(item.amount)}
                                             </span>
                                             <Button
@@ -458,7 +450,7 @@ export default function Dashboard({
                 )}
 
                 {hasExpectations && (
-                    <Card className="bg-muted/40">
+                    <Card className="border-savings/30 bg-savings-soft">
                         <h2 className="text-sm font-medium text-muted-foreground">
                             Si todo va como esperas, a final de mes te quedarían
                         </h2>

@@ -11,10 +11,12 @@ import { useEffect, useMemo, useState } from 'react';
 import AccountController from '@/actions/App/Http/Controllers/Finance/AccountController';
 import TransactionController from '@/actions/App/Http/Controllers/Finance/TransactionController';
 import TransferController from '@/actions/App/Http/Controllers/Finance/TransferController';
+import { CategoryIcon } from '@/components/finance/category-badge';
 import {
     closeQuick,
     matchPending,
     openQuick,
+    quickPresetCategory,
     suggestCategory,
     useQuickView,
 } from '@/components/quick/quick-store';
@@ -30,7 +32,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { NativeSelect } from '@/components/ui/native-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/hooks/use-format';
@@ -41,24 +42,6 @@ import { index as paymentsIndex } from '@/routes/payments';
 import { data as quickAddData } from '@/routes/quick-add';
 
 type Errors = Record<string, string>;
-
-const EXPENSE_IDEAS = [
-    'Supermercado',
-    'Comer fuera',
-    'Café o bar',
-    'Gasolina',
-    'Transporte',
-    'Ropa',
-    'Farmacia',
-];
-
-const INCOME_IDEAS = [
-    'Sueldo',
-    'Me devolvieron dinero',
-    'Vendí algo',
-    'Un regalo',
-    'Otro ingreso',
-];
 
 const SPENDING_TYPES = [
     ['need', 'Algo necesario'],
@@ -224,8 +207,12 @@ function QuickEntry({
     const [uuid] = useState(() => newUuid());
     const [amount, setAmount] = useState('');
     const [concept, setConcept] = useState('');
-    const [chosenCategory, setChosenCategory] = useState<number | null>(null);
-    const [changingCategory, setChangingCategory] = useState(false);
+    // Al tocar el icono de una categoría en «Gastos» o «Ingresos», llega elegida.
+    const [chosenCategory, setChosenCategory] = useState<number | null>(() => {
+        const preset = quickPresetCategory();
+
+        return categories.some((c) => c.id === preset) ? preset : null;
+    });
     const [date, setDate] = useState(data.today);
     const [otherDay, setOtherDay] = useState(false);
     const [accountId, setAccountId] = useState<number | null>(
@@ -341,18 +328,55 @@ function QuickEntry({
                 error={errors.amount}
             />
 
+            <fieldset className="grid gap-2">
+                <legend className="mb-1 text-base font-medium">
+                    {isExpense ? '¿En qué?' : '¿De dónde?'}
+                </legend>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {categories.map((c) => {
+                        const active = c.id === categoryId;
+
+                        return (
+                            <button
+                                key={c.id}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => setChosenCategory(c.id)}
+                                className={cn(
+                                    'flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border p-2 text-center text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                                    active
+                                        ? 'border-primary bg-primary/10 ring-2 ring-primary'
+                                        : 'bg-card hover:bg-muted',
+                                )}
+                            >
+                                <CategoryIcon icon={c.icon} color={c.color} />
+                                <span className="line-clamp-2 leading-tight">
+                                    {c.name}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+                <InputError message={errors.category_id} />
+            </fieldset>
+
             <div className="grid gap-2">
-                <Label htmlFor="quick-concept" className="text-base">
-                    {isExpense ? '¿En qué fue?' : '¿De dónde vino?'}
+                <Label htmlFor="quick-concept">
+                    Detalle{' '}
+                    <span className="font-normal text-muted-foreground">
+                        (opcional)
+                    </span>
                 </Label>
                 <Input
                     id="quick-concept"
                     value={concept}
                     onChange={(event) => setConcept(event.target.value)}
                     placeholder={
-                        isExpense
-                            ? 'Ej.: una cerveza con un amigo'
-                            : 'Ej.: me pagaron el sueldo'
+                        category
+                            ? `Si no escribes nada: «${category.name}»`
+                            : isExpense
+                              ? 'Ej.: una cerveza con un amigo'
+                              : 'Ej.: me pagaron el sueldo'
                     }
                     maxLength={255}
                     autoComplete="off"
@@ -364,55 +388,8 @@ function QuickEntry({
                         <option key={item.concept} value={item.concept} />
                     ))}
                 </datalist>
-                <div className="flex flex-wrap gap-2">
-                    {(isExpense ? EXPENSE_IDEAS : INCOME_IDEAS).map((idea) => (
-                        <button
-                            key={idea}
-                            type="button"
-                            onClick={() => setConcept(idea)}
-                            className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        >
-                            {idea}
-                        </button>
-                    ))}
-                </div>
                 <InputError message={errors.concept} />
-
-                <div className="text-sm">
-                    {changingCategory ? (
-                        <NativeSelect
-                            aria-label="Categoría"
-                            value={categoryId}
-                            onChange={(event) =>
-                                setChosenCategory(Number(event.target.value))
-                            }
-                        >
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </NativeSelect>
-                    ) : (
-                        <p className="text-muted-foreground">
-                            Categoría:{' '}
-                            <span className="font-medium text-foreground">
-                                {category?.name}
-                            </span>{' '}
-                            ·{' '}
-                            <button
-                                type="button"
-                                className="text-primary underline-offset-4 hover:underline"
-                                onClick={() => setChangingCategory(true)}
-                            >
-                                cambiar
-                            </button>
-                        </p>
-                    )}
-                    <InputError message={errors.category_id} />
-                </div>
             </div>
-
             {match && (
                 <div className="rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
                     <p>
@@ -821,7 +798,7 @@ export function QuickButtons({ className }: { className?: string }) {
         <div className={cn('grid grid-cols-2 gap-2', className)}>
             <Button
                 size="lg"
-                className="h-14 justify-start gap-3 text-base"
+                className="h-14 justify-start gap-3 rounded-2xl bg-expense-soft text-base text-expense shadow-none hover:bg-expense-soft/80"
                 onClick={() => openQuick('expense')}
             >
                 <ArrowUpFromLine aria-hidden="true" />
@@ -829,8 +806,7 @@ export function QuickButtons({ className }: { className?: string }) {
             </Button>
             <Button
                 size="lg"
-                variant="secondary"
-                className="h-14 justify-start gap-3 text-base"
+                className="h-14 justify-start gap-3 rounded-2xl bg-income-soft text-base text-income shadow-none hover:bg-income-soft/80"
                 onClick={() => openQuick('income')}
             >
                 <ArrowDownToLine aria-hidden="true" />

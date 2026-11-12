@@ -2,7 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import { MobileNav } from '@/components/mobile-nav';
+import { FloatingAdd, MobileTabs } from '@/components/mobile-nav';
 import { SyncProvider } from '@/components/offline/sync-provider';
 import { QuickAddHost } from '@/components/quick/quick-add';
 import type { AppLayoutProps } from '@/types';
@@ -21,16 +21,21 @@ export default function AppSidebarLayout({
             </a>
             <AppSidebar />
             <AppContent variant="sidebar" className="min-w-0 overflow-x-clip">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                {/* En móvil, cabecera y apartados quedan fijos arriba, bajo la
+                    zona segura de la pantalla (muesca, barra de estado). */}
+                <div className="sticky top-0 z-30 bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur md:static md:bg-transparent md:pt-0 md:backdrop-blur-none">
+                    <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                    <MobileTabs />
+                </div>
                 <div
                     id="contenido"
                     tabIndex={-1}
-                    className="flex flex-1 flex-col pb-24 outline-none md:pb-0"
+                    className="flex flex-1 flex-col pb-[calc(env(safe-area-inset-bottom)+6rem)] outline-none md:pb-0"
                 >
                     {children}
                 </div>
             </AppContent>
-            <MobileNav />
+            <FloatingAdd />
             <SyncProvider />
             <QuickAddHost />
         </AppShell>

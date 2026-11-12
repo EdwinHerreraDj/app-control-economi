@@ -55,9 +55,9 @@ class BrandingController extends Controller
             'background_color' => ['required', 'regex:'.self::HEX],
             'primary_color' => ['nullable', 'regex:'.self::HEX],
         ], [
-            'theme_color.regex' => 'Usa un color hexadecimal, por ejemplo #0f766e.',
-            'background_color.regex' => 'Usa un color hexadecimal, por ejemplo #f6f9f8.',
-            'primary_color.regex' => 'Usa un color hexadecimal, por ejemplo #0f766e.',
+            'theme_color.regex' => 'Usa un color hexadecimal, por ejemplo #4f3ff0.',
+            'background_color.regex' => 'Usa un color hexadecimal, por ejemplo #f8f7fd.',
+            'primary_color.regex' => 'Usa un color hexadecimal, por ejemplo #4f3ff0.',
         ], [
             'name' => 'nombre', 'short_name' => 'nombre corto', 'theme_color' => 'color de la barra',
             'background_color' => 'color de fondo', 'primary_color' => 'color principal',

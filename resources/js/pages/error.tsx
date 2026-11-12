@@ -30,7 +30,7 @@ export default function ErrorPage({
         <div className="flex min-h-svh flex-col bg-background">
             <Head title={title} />
 
-            <header className="flex items-center gap-2 px-4 py-4 sm:px-6">
+            <header className="flex items-center gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-4 sm:px-6">
                 {brand.logo && (
                     <img
                         src={brand.logo}

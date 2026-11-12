@@ -7,11 +7,24 @@ import { useSyncExternalStore } from 'react';
 export type QuickView = 'menu' | 'expense' | 'income' | 'savings' | null;
 
 let view: QuickView = null;
+let presetCategory: number | null = null;
 const listeners = new Set<() => void>();
 
-export function openQuick(next: Exclude<QuickView, null> = 'menu'): void {
+/**
+ * Abre el panel. Con una categoría, el formulario llega ya con ella elegida
+ * (al tocar su icono en «Gastos» o «Ingresos»).
+ */
+export function openQuick(
+    next: Exclude<QuickView, null> = 'menu',
+    categoryId: number | null = null,
+): void {
     view = next;
+    presetCategory = categoryId;
     listeners.forEach((listener) => listener());
+}
+
+export function quickPresetCategory(): number | null {
+    return presetCategory;
 }
 
 export function closeQuick(): void {

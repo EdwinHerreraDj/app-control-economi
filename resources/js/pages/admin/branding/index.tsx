@@ -189,7 +189,7 @@ export default function BrandingIndex({ settings, assets }: Props) {
                                         [
                                             'primary_color',
                                             'Color principal (opcional)',
-                                            settings.primary_color ?? '#0f766e',
+                                            settings.primary_color ?? '#4f3ff0',
                                             'Botones y enlaces en el tema claro. Debe contrastar con texto blanco (4,5:1).',
                                         ],
                                     ] as const

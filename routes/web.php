@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\MascotMessageController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\ChoosePasswordController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\CategoryFlowController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Finance\AccountController;
 use App\Http\Controllers\Finance\BudgetController;
@@ -69,6 +70,8 @@ Route::middleware(['auth', 'verified', 'onboarded'])->group(function () {
 
     // Experiencia sencilla: mis pagos, mis meses, primera configuración y
     // datos de los formularios rápidos.
+    Route::get('expenses', [CategoryFlowController::class, 'expenses'])->name('expenses.index');
+    Route::get('incomes', [CategoryFlowController::class, 'incomes'])->name('incomes.index');
     Route::get('payments', PaymentsController::class)->name('payments.index');
     Route::get('months', MonthController::class)->name('months.index');
     Route::get('quick-add', QuickAddController::class)->name('quick-add.data');

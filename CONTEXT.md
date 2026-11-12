@@ -94,7 +94,11 @@ El selector permanecerá en la configuración del usuario y explicará estas con
 
 La interfaz usa expresiones naturales, cercanas y adultas, comprensibles en España y Latinoamérica: «Me entró dinero», «Gasté dinero», «¿Cuánto cobras?», «¿Qué pagas todos los meses?», «¿Debes dinero?», «¿Cuánto te falta?», «Ya lo pagué». No debe parecer un ERP, un banco ni una aplicación contable.
 
-Navegación principal de cuatro apartados (Inicio, Movimientos, Mis pagos y Mis meses) y un botón central «+» para apuntar. En móvil, barra inferior con el botón en el centro; en escritorio, barra lateral con el botón «Apuntar». Las herramientas avanzadas (cuentas, categorías, estadísticas, presupuestos y metas de ahorro) siguen disponibles en «Más», sin estorbar. En móvil los formularios se abren como un panel desde abajo, con los botones siempre visibles y sin diálogos encadenados.
+Navegación principal de cinco apartados: Inicio, Gastos, Ingresos, Mis pagos y Mis meses. En móvil la barra de apartados va arriba (abajo choca con los gestos de iPhone y Android) y un botón flotante «+», separado del borde y del área segura, sirve para apuntar; en escritorio, barra lateral con el botón «Apuntar». Las herramientas avanzadas (todos los movimientos, cuentas, categorías, estadísticas, presupuestos y metas de ahorro) siguen en «Más». En móvil los formularios se abren como un panel desde abajo, con los botones siempre visibles, que sube con el teclado para que siempre se vea lo que se escribe.
+
+«Gastos» e «Ingresos» muestran todas las categorías con su icono: se toca una, se escribe el importe y listo. Debajo, lo del mes agrupado por categoría (de más a menos dinero); lo nuevo aparece en su grupo y lo pendiente se distingue en ámbar.
+
+Colores con significado, siempre con texto o icono: verde lo que entra, rosa lo que sale, azul lo ahorrado, ámbar avisos y pendientes, y un índigo-violeta vivo como color principal.
 
 ### Primeros pasos
 
@@ -388,7 +392,7 @@ Se configurarán copias de seguridad de base de datos y archivos, con prueba de 
 7. Crear configuración de identidad y catálogo de mascotas; integrar una mascota inicial.
 8. Completar instalación PWA, modo offline, sincronización y actualización.
 9. Validar seguridad, cálculos, accesibilidad y despliegue; documentar operación.
-10. Rediseño sencillo: primeros pasos, Inicio, Mis pagos, Mis meses, apuntes rápidos y navegación en cuatro apartados.
+10. Rediseño sencillo: primeros pasos, Inicio, Gastos, Ingresos, Mis pagos, Mis meses, apuntes rápidos y navegación en cinco apartados.
 
 El diseño de identificadores, conflictos, privacidad local y sincronización se realizará desde la base del proyecto, aunque la fase offline se complete después.
 
