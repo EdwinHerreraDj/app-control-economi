@@ -195,7 +195,7 @@ export default function Payments(props: Props) {
                     <p className="mt-1 text-sm text-muted-foreground">
                         {isExpense
                             ? 'El alquiler, la luz, internet, el gimnasio… Apúntalos una vez y te avisaremos cuando toque. Nada se descuenta hasta que pulses «Ya lo pagué».'
-                            : 'Tu nómina, una pensión u otro cobro que llega cada mes, más o menos en la misma fecha. No se suma a tu dinero hasta que confirmes que ha llegado.'}
+                            : 'Tu nómina, tu negocio, un servicio que cobras, una pensión… lo que te entra cada mes, más o menos en la misma fecha. No se suma a tu dinero hasta que confirmes que ha llegado.'}
                     </p>
                     {list.length > 0 && (
                         <p className="mt-3 text-sm">

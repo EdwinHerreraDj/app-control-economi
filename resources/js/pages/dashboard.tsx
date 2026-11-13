@@ -142,7 +142,7 @@ function shortDate(date: string, locale: string): string {
 }
 
 /**
- * «Hasta tu próxima nómina»: lo que aún hay que pagar con el dinero de hoy
+ * «Hasta que te entren tus ingresos»: lo que aún hay que pagar con el dinero de hoy
  * antes de cobrar, y lo que quedaría. Es una previsión.
  */
 function UntilPaydayCard({
@@ -163,7 +163,7 @@ function UntilPaydayCard({
         <Card>
             <h2 className="text-sm font-medium text-muted-foreground">
                 {payday && income
-                    ? `Hasta que cobres tu ${income.toLowerCase()} (el ${shortDate(payday, locale)})`
+                    ? `Hasta que te entren tus ingresos (el ${shortDate(payday, locale)})`
                     : `Hasta el ${shortDate(until.until, locale)}`}
             </h2>
             <p className="mt-1 text-sm">
@@ -204,9 +204,10 @@ function UntilPaydayCard({
 }
 
 /**
- * Lo que tendrá que cubrir la próxima nómina: pagos fijos y cuotas de
+ * Lo que tendrán que cubrir tus próximos ingresos fijos (nómina, negocio,
+ * servicios…): pagos fijos y cuotas de
  * deudas (también son pagos de cada mes), lo que entra y lo que queda.
- * Si la nómina llega a principios de mes, cubre el mes entero desde el día 1.
+ * Si llegan a principios de mes, cubren el mes entero desde el día 1.
  */
 function NextMonthCard({
     next,
@@ -215,7 +216,7 @@ function NextMonthCard({
 }: {
     next: Props['overview']['next_cycle'];
     locale: string;
-    /** Lo que quedaría del dinero de hoy al llegar la nómina. */
+    /** Lo que quedaría del dinero de hoy al llegar tus ingresos. */
     carryOver: string | null;
 }) {
     const format = useFormat();
@@ -227,7 +228,6 @@ function NextMonthCard({
     // Veredicto: ¿el ingreso fijo alcanza para los pagos y cuotas? (céntimos
     // enteros, sin decimales flotantes).
     const decimals = format.preferences.currency_decimals ?? 2;
-    const incomeName = (next.income ?? 'ingreso fijo').toLowerCase();
     const hasIncome = next.payday !== null && Number(next.incomes) > 0;
     const freeMinor = toMinor(next.free, decimals);
     const withCarry =
@@ -260,8 +260,8 @@ function NextMonthCard({
                     )}
                     <p>
                         {freeMinor >= 0
-                            ? `Tu ${incomeName} de ${month} (${format.money(next.incomes)}) alcanza para todos tus pagos y cuotas. Te sobrarían ${money(freeMinor)}.`
-                            : `Tu ${incomeName} de ${month} (${format.money(next.incomes)}) no alcanza para tus pagos y cuotas (${format.money(next.total)}): te faltarían ${money(freeMinor)}.`}
+                            ? `Tus ingresos de ${month} (${format.money(next.incomes)}) alcanzan para todos tus pagos y cuotas. Te sobrarían ${money(freeMinor)}.`
+                            : `Tus ingresos de ${month} (${format.money(next.incomes)}) no alcanzan para tus pagos y cuotas (${format.money(next.total)}): te faltarían ${money(freeMinor)}.`}
                         {freeMinor < 0 &&
                             withCarry !== null &&
                             (withCarry >= 0
@@ -271,7 +271,8 @@ function NextMonthCard({
                 </div>
             ) : (
                 <p className="mb-4 rounded-2xl bg-info-soft p-3.5 text-sm font-medium text-info">
-                    Si apuntas tu nómina u otro ingreso fijo en{' '}
+                    Si apuntas tus ingresos fijos (nómina, negocio, servicios…)
+                    en{' '}
                     <Link
                         href={paymentsIndex()}
                         className="underline underline-offset-4"
@@ -283,10 +284,10 @@ function NextMonthCard({
             )}
 
             <h2 className="text-sm font-medium text-muted-foreground">
-                {next.payday && next.income
+                {next.payday
                     ? next.in_progress
-                        ? `Tu ${next.income.toLowerCase()} de ${month} tiene que cubrir`
-                        : `Con tu ${next.income.toLowerCase()} de ${month} tendrás que pagar`
+                        ? `Tus ingresos de ${month} tienen que cubrir`
+                        : `Con tus ingresos de ${month} tendrás que pagar`
                     : `En ${month} tendrás que pagar`}
             </h2>
             <p className="mt-1 text-3xl font-semibold tracking-tight text-expense tabular-nums">
@@ -294,8 +295,8 @@ function NextMonthCard({
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
                 {next.payday
-                    ? `Del ${shortDate(next.start, locale)} al ${shortDate(next.end, locale)} · la nómina llega el ${shortDate(next.payday, locale)}`
-                    : 'Apunta tu nómina en Mis pagos y la previsión se hará según el día en que cobras.'}
+                    ? `Del ${shortDate(next.start, locale)} al ${shortDate(next.end, locale)} · tus ingresos llegan el ${shortDate(next.payday, locale)}`
+                    : 'Apunta tus ingresos fijos en Mis pagos y la previsión se hará según el día en que cobras.'}
             </p>
 
             <dl className="mt-3 grid gap-1.5 text-sm">
@@ -486,6 +487,9 @@ export default function Dashboard({
                     </p>
                     <h1 className="text-2xl font-semibold">Tu dinero</h1>
                 </header>
+
+                {/* La mascota acompaña desde arriba, junto al saludo. */}
+                {mascot && <MascotCompanion mascot={mascot} />}
 
                 <PendingSyncNotice />
 
@@ -870,7 +874,6 @@ export default function Dashboard({
                     </Card>
                 )}
 
-                {mascot && <MascotCompanion mascot={mascot} />}
             </div>
 
             <ConfirmPendingSheet
